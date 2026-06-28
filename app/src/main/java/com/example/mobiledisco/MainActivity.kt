@@ -20,6 +20,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import android.net.Uri
 import androidx.compose.ui.platform.LocalContext
+import android.provider.OpenableColumns
+import android.content.Context
 
 
 
@@ -56,7 +58,7 @@ fun MobileDiscoScreen(
 ) {
 
     var musicaSelecionada by remember {
-        mutableStateOf<Uri?>(null)
+        mutableStateOf<Song?>(null)
     }
 
     val context = LocalContext.current
@@ -65,7 +67,10 @@ fun MobileDiscoScreen(
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
-        musicaSelecionada = uri
+        uri?.let {
+            val nome = getFileName(context, it)
+            musicaSelecionada = Song(nome, it.toString())
+        }
     }
 
     Column(
@@ -94,7 +99,7 @@ fun MobileDiscoScreen(
 
 
         Text(
-            text = musicaSelecionada?.toString() ?: "Nenhuma música selecionada"
+            text = musicaSelecionada?.name ?: "Nenhuma música selecionada"
         )
 
         Spacer(
@@ -120,7 +125,7 @@ fun MobileDiscoScreen(
         Button(
             onClick = {
                 musicaSelecionada?.let {
-                    player.play(it)
+                    player.play(Uri.parse(it.uri))
                 }
             }
         ) {
@@ -169,6 +174,36 @@ fun MobileDiscoScreen(
 
         }
     }
+}
+
+fun getFileName(
+    context: Context,
+    uri: Uri
+): String {
+
+    var name = "Música desconhecida"
+
+    val cursor = context.contentResolver.query(
+        uri,
+        null,
+        null,
+        null,
+        null
+    )
+
+    cursor?.use {
+
+        val nameIndex =
+            it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+
+        if (it.moveToFirst() && nameIndex >= 0) {
+
+            name = it.getString(nameIndex)
+
+        }
+    }
+
+    return name
 }
 
 @Preview(showBackground = true)
