@@ -1,5 +1,7 @@
 package com.example.mobiledisco
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -12,6 +14,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.mobiledisco.ui.theme.MobileDiscoTheme
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import android.net.Uri
+import androidx.compose.ui.platform.LocalContext
+
 
 
 class MainActivity : ComponentActivity() {
@@ -46,6 +55,19 @@ fun MobileDiscoScreen(
     modifier: Modifier = Modifier
 ) {
 
+    var musicaSelecionada by remember {
+        mutableStateOf<Uri?>(null)
+    }
+
+    val context = LocalContext.current
+    val player = remember { MusicPlayer(context) }
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        musicaSelecionada = uri
+    }
+
     Column(
 
         modifier = modifier.fillMaxSize(),
@@ -72,18 +94,34 @@ fun MobileDiscoScreen(
 
 
         Text(
-            text = "Nenhuma música selecionada"
+            text = musicaSelecionada?.toString() ?: "Nenhuma música selecionada"
         )
+
+        Spacer(
+            modifier = Modifier.height(30.dp)
+        )
+
+        Button(
+            onClick = {
+                launcher.launch("audio/*")
+            }
+        ) {
+
+            Text("Escolher música")
+
+        }
 
 
         Spacer(
-            modifier = Modifier.height(40.dp)
+            modifier = Modifier.height(20.dp)
         )
 
 
         Button(
             onClick = {
-
+                musicaSelecionada?.let {
+                    player.play(it)
+                }
             }
         ) {
 
@@ -97,7 +135,10 @@ fun MobileDiscoScreen(
         )
 
 
-        Row {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
 
 
             Button(
@@ -129,8 +170,6 @@ fun MobileDiscoScreen(
         }
     }
 }
-
-
 
 @Preview(showBackground = true)
 @Composable
