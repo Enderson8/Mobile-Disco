@@ -36,8 +36,20 @@ class MusicPlayer(context: Context) {
         player.stop()
     }
 
+    fun seekTo(position: Long) {
+        player.seekTo(position)
+    }
+
     fun isPlaying(): Boolean {
         return player.isPlaying
+    }
+
+    fun getCurrentPosition(): Long {
+        return player.currentPosition
+    }
+
+    fun getDuration(): Long {
+        return player.duration
     }
 
     fun togglePlayback(uri: Uri) {

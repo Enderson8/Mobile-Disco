@@ -8,6 +8,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
+import androidx.compose.material3.Slider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,6 +20,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
 import android.net.Uri
 import androidx.compose.ui.platform.LocalContext
 import android.provider.OpenableColumns
@@ -100,6 +102,22 @@ fun MobileDiscoScreen(
         mutableStateOf(false)
     }
 
+    var currentPosition by remember {
+        mutableStateOf(0L)
+    }
+
+    var duration by remember {
+        mutableStateOf(0L)
+    }
+
+    LaunchedEffect(isPlaying) {
+        while (isPlaying) {
+            currentPosition = player.getCurrentPosition()
+            duration = player.getDuration()
+            delay(1000)
+        }
+    }
+
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
@@ -154,6 +172,26 @@ fun MobileDiscoScreen(
 
         Text(
             text = musicaSelecionada?.name ?: "Nenhuma música selecionada"
+        )
+
+
+        Spacer(
+            modifier = Modifier.height(20.dp)
+        )
+
+
+        Text(
+            text = "${formatTime(currentPosition)} / ${formatTime(duration)}"
+        )
+
+        Slider(
+            value = currentPosition.toFloat(),
+            onValueChange = { novoValor ->
+                player.seekTo(novoValor.toLong())
+                currentPosition = novoValor.toLong()
+            },
+            valueRange = 0f..duration.toFloat().coerceAtLeast(0f),
+            enabled = duration > 0
         )
 
         Spacer(
@@ -344,6 +382,13 @@ fun getFileName(
     }
 
     return name
+}
+
+fun formatTime(ms: Long): String {
+    val totalSeconds = ms / 1000
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return "%02d:%02d".format(minutes, seconds)
 }
 
 @Preview(showBackground = true)
