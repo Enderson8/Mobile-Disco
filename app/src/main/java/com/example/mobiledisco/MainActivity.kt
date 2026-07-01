@@ -68,6 +68,10 @@ fun MobileDiscoScreen(
         mutableStateOf(listOf<Song>())
     }
 
+    var musicaAtualIndex by remember {
+        mutableStateOf(0)
+    }
+
     val context = LocalContext.current
     val player = remember(context) { MusicPlayer(context) }
 
@@ -150,6 +154,7 @@ fun MobileDiscoScreen(
                         .padding(10.dp)
                         .clickable {
                             musicaSelecionada = musica
+                            musicaAtualIndex = biblioteca.indexOf(musica)
                             player.play(Uri.parse(musica.uri))
                             isPlaying = true
                         }
@@ -207,7 +212,13 @@ fun MobileDiscoScreen(
 
             Button(
                 onClick = {
-
+                    if (musicaAtualIndex > 0) {
+                        musicaAtualIndex--
+                        val musicaAnterior = biblioteca[musicaAtualIndex]
+                        musicaSelecionada = musicaAnterior
+                        player.play(Uri.parse(musicaAnterior.uri))
+                        isPlaying = true
+                    }
                 }
             ) {
 
@@ -223,7 +234,13 @@ fun MobileDiscoScreen(
 
             Button(
                 onClick = {
-
+                    if (musicaAtualIndex < biblioteca.size - 1) {
+                        musicaAtualIndex++
+                        val proximaMusica = biblioteca[musicaAtualIndex]
+                        musicaSelecionada = proximaMusica
+                        player.play(Uri.parse(proximaMusica.uri))
+                        isPlaying = true
+                    }
                 }
             ) {
 
