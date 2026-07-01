@@ -18,14 +18,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import android.net.Uri
 import androidx.compose.ui.platform.LocalContext
 import android.provider.OpenableColumns
 import android.content.Context
+import android.content.Intent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-
+import android.content.SharedPreferences
 
 
 class MainActivity : ComponentActivity() {
@@ -75,21 +77,53 @@ fun MobileDiscoScreen(
     val context = LocalContext.current
     val player = remember(context) { MusicPlayer(context) }
 
+    val prefs = remember {
+        context.getSharedPreferences(
+            "mobile_disco",
+            Context.MODE_PRIVATE
+        )
+    }
+
+    LaunchedEffect(Unit) {
+        val musicasSalvas = prefs.all
+        biblioteca = musicasSalvas.map { item ->
+            Song(
+                name = item.key,
+                uri = item.value.toString(),
+                id = System.currentTimeMillis() // Temporário para carregar
+            )
+        }
+        musicaSelecionada = null
+    }
+
     var isPlaying by remember {
         mutableStateOf(false)
     }
 
     val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
+        contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
         uri?.let {
+            context.contentResolver.takePersistableUriPermission(
+                it,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+
             val nome = getFileName(context, it)
             val novaMusica = Song(
                 nome,
-                it.toString()
+                it.toString(),
+                id = System.currentTimeMillis()
             )
             biblioteca = biblioteca + novaMusica
             musicaSelecionada = novaMusica
+
+            prefs.edit()
+                .putString(
+                    novaMusica.name,
+                    novaMusica.uri
+                )
+                .apply()
         }
     }
 
@@ -128,11 +162,41 @@ fun MobileDiscoScreen(
 
         Button(
             onClick = {
-                launcher.launch("audio/*")
+                launcher.launch(arrayOf("audio/*"))
             }
         ) {
 
             Text("Escolher música")
+
+        }
+
+
+        Spacer(
+            modifier = Modifier.height(20.dp)
+        )
+
+
+        Button(
+            onClick = {
+
+                biblioteca = emptyList()
+
+                musicaSelecionada = null
+
+                musicaAtualIndex = 0
+
+                isPlaying = false
+
+                player.stop()
+
+                prefs.edit()
+                    .clear()
+                    .apply()
+
+            }
+        ) {
+
+            Text("🗑 Limpar biblioteca")
 
         }
 
