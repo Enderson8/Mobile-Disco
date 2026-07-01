@@ -3,12 +3,29 @@ package com.example.mobiledisco
 import android.content.Context
 import android.net.Uri
 import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 class MusicPlayer(context: Context) {
 
     private val player = ExoPlayer.Builder(context).build()
+
+    init {
+        player.addListener(
+            object : Player.Listener {
+                override fun onIsPlayingChanged(isPlaying: Boolean) {
+                    _isPlaying.value = isPlaying
+                }
+            }
+        )
+    }
+
     private var currentUri: Uri? = null
+
+    private val _isPlaying = MutableStateFlow(false)
+    val isPlaying = _isPlaying.asStateFlow()
 
     fun play(uri: Uri) {
 
@@ -20,6 +37,8 @@ class MusicPlayer(context: Context) {
 
         player.prepare()
 
+        player.seekTo(0)
+
         player.play()
 
     }
@@ -29,18 +48,25 @@ class MusicPlayer(context: Context) {
     }
 
     fun resume() {
+        if (player.playbackState == Player.STATE_ENDED) {
+            player.seekTo(0)
+        }
         player.play()
     }
 
     fun stop() {
-        player.stop()
+
+        player.pause()
+
+        player.seekTo(0)
+
     }
 
     fun seekTo(position: Long) {
         player.seekTo(position)
     }
 
-    fun isPlaying(): Boolean {
+    fun checkIsPlaying(): Boolean {
         return player.isPlaying
     }
 
@@ -54,7 +80,7 @@ class MusicPlayer(context: Context) {
 
     fun togglePlayback(uri: Uri) {
         if (currentUri == uri) {
-            if (isPlaying()) {
+            if (checkIsPlaying()) {
                 pause()
             } else {
                 resume()

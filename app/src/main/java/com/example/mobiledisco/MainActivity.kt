@@ -20,6 +20,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import kotlinx.coroutines.delay
 import android.net.Uri
 import androidx.compose.ui.platform.LocalContext
@@ -78,6 +79,7 @@ fun MobileDiscoScreen(
 
     val context = LocalContext.current
     val player = remember(context) { MusicPlayer(context) }
+    val isPlaying by player.isPlaying.collectAsState()
 
     val prefs = remember {
         context.getSharedPreferences(
@@ -96,10 +98,6 @@ fun MobileDiscoScreen(
             )
         }
         musicaSelecionada = null
-    }
-
-    var isPlaying by remember {
-        mutableStateOf(false)
     }
 
     var currentPosition by remember {
@@ -223,9 +221,9 @@ fun MobileDiscoScreen(
 
                 musicaAtualIndex = 0
 
-                isPlaying = false
-
                 player.stop()
+
+                currentPosition = 0L
 
                 prefs.edit()
                     .clear()
@@ -258,7 +256,6 @@ fun MobileDiscoScreen(
                             musicaSelecionada = musica
                             musicaAtualIndex = biblioteca.indexOf(musica)
                             player.play(Uri.parse(musica.uri))
-                            isPlaying = true
                         }
                 )
 
@@ -276,7 +273,6 @@ fun MobileDiscoScreen(
             onClick = {
                 musicaSelecionada?.let {
                     player.togglePlayback(Uri.parse(it.uri))
-                    isPlaying = !isPlaying
                 }
             }
         ) {
@@ -294,7 +290,7 @@ fun MobileDiscoScreen(
         Button(
             onClick = {
                 player.stop()
-                isPlaying = false
+                currentPosition = 0L
             }
         ) {
             Text("⏹ Stop")
@@ -319,7 +315,6 @@ fun MobileDiscoScreen(
                         val musicaAnterior = biblioteca[musicaAtualIndex]
                         musicaSelecionada = musicaAnterior
                         player.play(Uri.parse(musicaAnterior.uri))
-                        isPlaying = true
                     }
                 }
             ) {
@@ -341,7 +336,6 @@ fun MobileDiscoScreen(
                         val proximaMusica = biblioteca[musicaAtualIndex]
                         musicaSelecionada = proximaMusica
                         player.play(Uri.parse(proximaMusica.uri))
-                        isPlaying = true
                     }
                 }
             ) {
