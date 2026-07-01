@@ -61,6 +61,10 @@ fun MobileDiscoScreen(
         mutableStateOf<Song?>(null)
     }
 
+    var biblioteca by remember {
+        mutableStateOf(listOf<Song>())
+    }
+
     val context = LocalContext.current
     val player = remember(context) { MusicPlayer(context) }
 
@@ -73,7 +77,12 @@ fun MobileDiscoScreen(
     ) { uri ->
         uri?.let {
             val nome = getFileName(context, it)
-            musicaSelecionada = Song(nome, it.toString())
+            val novaMusica = Song(
+                nome,
+                it.toString()
+            )
+            biblioteca = biblioteca + novaMusica
+            musicaSelecionada = novaMusica
         }
     }
 
@@ -139,6 +148,19 @@ fun MobileDiscoScreen(
                 if (isPlaying) "⏸ Pause" else "▶ Play"
             )
 
+        }
+
+        Spacer(
+            modifier = Modifier.height(20.dp)
+        )
+
+        Button(
+            onClick = {
+                player.stop()
+                isPlaying = false
+            }
+        ) {
+            Text("⏹ Stop")
         }
 
 
