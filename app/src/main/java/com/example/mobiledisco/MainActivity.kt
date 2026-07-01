@@ -22,6 +22,9 @@ import android.net.Uri
 import androidx.compose.ui.platform.LocalContext
 import android.provider.OpenableColumns
 import android.content.Context
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 
 
 
@@ -126,6 +129,33 @@ fun MobileDiscoScreen(
         ) {
 
             Text("Escolher música")
+
+        }
+
+
+        Spacer(
+            modifier = Modifier.height(20.dp)
+        )
+
+
+        LazyColumn(
+            modifier = Modifier.height(200.dp)
+        ) {
+
+            items(biblioteca) { musica ->
+
+                Text(
+                    text = musica.name,
+                    modifier = Modifier
+                        .padding(10.dp)
+                        .clickable {
+                            musicaSelecionada = musica
+                            player.play(Uri.parse(musica.uri))
+                            isPlaying = true
+                        }
+                )
+
+            }
 
         }
 
