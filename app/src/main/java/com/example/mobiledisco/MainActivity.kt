@@ -62,7 +62,11 @@ fun MobileDiscoScreen(
     }
 
     val context = LocalContext.current
-    val player = remember { MusicPlayer(context) }
+    val player = remember(context) { MusicPlayer(context) }
+
+    var isPlaying by remember {
+        mutableStateOf(false)
+    }
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -125,12 +129,15 @@ fun MobileDiscoScreen(
         Button(
             onClick = {
                 musicaSelecionada?.let {
-                    player.play(Uri.parse(it.uri))
+                    player.togglePlayback(Uri.parse(it.uri))
+                    isPlaying = !isPlaying
                 }
             }
         ) {
 
-            Text("▶ Play")
+            Text(
+                if (isPlaying) "⏸ Pause" else "▶ Play"
+            )
 
         }
 
