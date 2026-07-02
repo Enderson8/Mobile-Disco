@@ -1,11 +1,9 @@
 package com.example.mobiledisco
 
-data class Song(
-    val name: String,
+data class SongMetadata(
+    val title: String,
     val artist: String,
     val album: String,
     val duration: Long,
-    val uri: String,
-    val id: Long,
     val cover: ByteArray?
 )

@@ -36,10 +36,17 @@ class MusicViewModel(
     private fun carregarBiblioteca() {
         val musicasSalvas = prefs.all
         _biblioteca.value = musicasSalvas.map { item ->
+            // Note: Since we only saved name and uri in SharedPreferences previously,
+            // we'll use placeholder values for artist, album and duration.
+            // A more robust implementation would save the full Song object (e.g. via JSON).
             Song(
                 name = item.key,
+                artist = "Artista desconhecido",
+                album = "Álbum desconhecido",
+                duration = 0L,
                 uri = item.value.toString(),
-                id = System.currentTimeMillis()
+                id = System.currentTimeMillis(),
+                cover = null
             )
         }
     }

@@ -28,6 +28,11 @@ import android.provider.OpenableColumns
 import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 
@@ -78,11 +83,15 @@ fun MobileDiscoScreen(
                 Intent.FLAG_GRANT_READ_URI_PERMISSION
             )
 
-            val nome = getFileName(context, it)
+            val metadata = MusicMetadata.read(context, it)
             val novaMusica = Song(
-                nome,
-                it.toString(),
-                id = System.currentTimeMillis()
+                name = metadata.title,
+                artist = metadata.artist,
+                album = metadata.album,
+                duration = metadata.duration,
+                uri = it.toString(),
+                id = System.currentTimeMillis(),
+                cover = metadata.cover
             )
             viewModel.adicionarMusica(novaMusica)
             viewModel.selecionarMusica(novaMusica)
@@ -90,9 +99,11 @@ fun MobileDiscoScreen(
     }
 
     Column(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Top
     ) {
         Text(
             text = "Mobile Disco",
@@ -100,6 +111,16 @@ fun MobileDiscoScreen(
         )
 
         Spacer(modifier = Modifier.height(40.dp))
+
+        musicaSelecionada?.cover?.let { bytes ->
+            val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = "Capa do álbum",
+                modifier = Modifier.size(220.dp)
+            )
+            Spacer(modifier = Modifier.height(20.dp))
+        }
 
         Text(text = musicaSelecionada?.name ?: "Nenhuma música selecionada")
 
@@ -138,17 +159,29 @@ fun MobileDiscoScreen(
 
         LazyColumn(modifier = Modifier.height(200.dp)) {
             items(biblioteca) { musica ->
-                Text(
-                    text = if (musicaSelecionada?.id == musica.id)
-                        "▶ ${musica.name}"
-                    else
-                        musica.name,
+                Column(
                     modifier = Modifier
                         .padding(10.dp)
                         .clickable {
                             viewModel.selecionarMusica(musica)
                         }
-                )
+                ) {
+                    Text(
+                        text = if (musicaSelecionada?.id == musica.id)
+                            "▶ ${musica.name}"
+                        else
+                            musica.name,
+                        style = if (musicaSelecionada?.id == musica.id)
+                            MaterialTheme.typography.titleMedium
+                        else
+                            MaterialTheme.typography.bodyLarge
+                    )
+                    Text(
+                        text = musica.artist,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
 
