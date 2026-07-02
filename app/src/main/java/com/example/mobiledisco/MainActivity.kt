@@ -30,6 +30,10 @@ import android.content.Intent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.asImageBitmap
@@ -98,6 +102,30 @@ fun MobileDiscoScreen(
         }
     }
 
+    val onEvent: (PlayerEvent) -> Unit = { event ->
+        when (event) {
+            PlayerEvent.PlayPause -> {
+                musicaSelecionada?.let {
+                    viewModel.toggle(Uri.parse(it.uri))
+                }
+            }
+            PlayerEvent.Stop -> {
+                viewModel.stop()
+                currentPosition = 0L
+            }
+            PlayerEvent.Next -> {
+                viewModel.proximaMusica()
+            }
+            PlayerEvent.Previous -> {
+                viewModel.anteriorMusica()
+            }
+            is PlayerEvent.Seek -> {
+                player.seekTo(event.position)
+                currentPosition = event.position
+            }
+        }
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -110,52 +138,66 @@ fun MobileDiscoScreen(
             style = MaterialTheme.typography.headlineMedium
         )
 
-        Spacer(modifier = Modifier.height(40.dp))
-
-        musicaSelecionada?.cover?.let { bytes ->
-            val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-            Image(
-                bitmap = bitmap.asImageBitmap(),
-                contentDescription = "Capa do álbum",
-                modifier = Modifier.size(220.dp)
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            border = BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outline
             )
-            Spacer(modifier = Modifier.height(20.dp))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Spacer(modifier = Modifier.height(20.dp))
+
+                val uiState = PlayerUiState(
+                    musica = musicaSelecionada,
+                    currentPosition = currentPosition,
+                    duration = duration,
+                    isPlaying = isPlaying
+                )
+
+                PlayerPanel(
+                    state = uiState,
+                    onEvent = onEvent
+                )
+
+                Spacer(modifier = Modifier.height(30.dp))
+
+                Button(onClick = { launcher.launch(arrayOf("audio/*")) }) {
+                    Text("Escolher música")
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Button(
+                    onClick = {
+                        viewModel.limparBiblioteca()
+                        currentPosition = 0L
+                    }
+                ) {
+                    Text("🗑 Limpar biblioteca")
+                }
+            }
         }
 
-        Text(text = musicaSelecionada?.name ?: "Nenhuma música selecionada")
+        Spacer(modifier = Modifier.height(24.dp))
 
-        Spacer(modifier = Modifier.height(20.dp))
+        HorizontalDivider()
 
-        Text(text = "${formatTime(currentPosition)} / ${formatTime(duration)}")
+        Spacer(modifier = Modifier.height(16.dp))
 
-        Slider(
-            value = currentPosition.toFloat(),
-            onValueChange = { novoValor ->
-                player.seekTo(novoValor.toLong())
-                currentPosition = novoValor.toLong()
-            },
-            valueRange = 0f..duration.toFloat().coerceAtLeast(0f),
-            enabled = duration > 0
+        Text(
+            text = "Biblioteca",
+            style = MaterialTheme.typography.titleMedium
         )
 
-        Spacer(modifier = Modifier.height(30.dp))
-
-        Button(onClick = { launcher.launch(arrayOf("audio/*")) }) {
-            Text("Escolher música")
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Button(
-            onClick = {
-                viewModel.limparBiblioteca()
-                currentPosition = 0L
-            }
-        ) {
-            Text("🗑 Limpar biblioteca")
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         LazyColumn(modifier = Modifier.height(200.dp)) {
             items(biblioteca) { musica ->
@@ -182,50 +224,6 @@ fun MobileDiscoScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Button(
-            onClick = {
-                musicaSelecionada?.let {
-                    viewModel.toggle(
-                        Uri.parse(it.uri)
-                    )
-                }
-            }
-        ) {
-            Text(if (isPlaying) "⏸ Pause" else "▶ Play")
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Button(onClick = {
-            viewModel.stop()
-            currentPosition = 0L
-        }) {
-            Text("⏹ Stop")
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Button(onClick = {
-                viewModel.anteriorMusica()
-            }) {
-                Text("⏮")
-            }
-
-            Spacer(modifier = Modifier.width(30.dp))
-
-            Button(onClick = {
-                viewModel.proximaMusica()
-            }) {
-                Text("⏭")
             }
         }
     }
