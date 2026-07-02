@@ -139,7 +139,10 @@ fun MobileDiscoScreen(
         LazyColumn(modifier = Modifier.height(200.dp)) {
             items(biblioteca) { musica ->
                 Text(
-                    text = musica.name,
+                    text = if (musicaSelecionada?.id == musica.id)
+                        "▶ ${musica.name}"
+                    else
+                        musica.name,
                     modifier = Modifier
                         .padding(10.dp)
                         .clickable {

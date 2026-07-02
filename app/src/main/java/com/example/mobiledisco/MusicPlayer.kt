@@ -62,6 +62,12 @@ class MusicPlayer(context: Context) {
 
     }
 
+    fun release() {
+
+        player.release()
+
+    }
+
     fun seekTo(position: Long) {
         player.seekTo(position)
     }

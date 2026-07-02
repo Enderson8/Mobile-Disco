@@ -102,4 +102,9 @@ class MusicViewModel(
             player.play(Uri.parse(anterior.uri))
         }
     }
+
+    override fun onCleared() {
+        player.release()
+        super.onCleared()
+    }
 }
