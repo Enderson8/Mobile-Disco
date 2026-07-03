@@ -15,22 +15,40 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
+import androidx.compose.ui.graphics.Color
+
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = HiFiColors.WoodBrown,
+    secondary = Color(0xFF8D8D8D),
+    background = Color(0xFF1C1C1C),
+    surface = Color(0xFF2B2B2B),
+    outline = Color(0xFF555555),
+    onPrimary = Color.White,
+    onBackground = Color.White,
+    onSurface = Color.White
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
+    primary = HiFiColors.WoodBrown,
+    secondary = HiFiColors.PanelGray,
+    background = HiFiColors.WarmBackground,
+    surface = HiFiColors.BrushedMetal,
+
+    outline = Color(0xFFC6B59D),
+
+    onPrimary = Color.White,
+    onSecondary = Color.White,
+    onBackground = Color(0xFF222222),
+    onSurface = Color(0xFF222222),
+
+    primaryContainer = HiFiColors.BrushedMetal,
+    secondaryContainer = HiFiColors.PanelGray
 )
 
 @Composable
 fun MobileDiscoTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {

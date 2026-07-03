@@ -20,6 +20,12 @@ fun PlayerPanel(
             .fillMaxWidth()
             .padding(16.dp)
     ) {
+        LedIndicator(
+            status = state.playbackStatus
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         AlbumCover(
             musica = state.musica
         )
@@ -35,13 +41,15 @@ fun PlayerPanel(
         TimeSlider(
             currentPosition = state.currentPosition,
             duration = state.duration,
-            onEvent = onEvent
+            onSeek = {
+                onEvent(PlayerEvent.Seek(it))
+            }
         )
 
         Spacer(modifier = Modifier.height(20.dp))
 
         PlayerControls(
-            isPlaying = state.isPlaying,
+            status = state.playbackStatus,
             onEvent = onEvent
         )
     }

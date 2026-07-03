@@ -14,11 +14,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.example.mobiledisco.player.PlaybackStatus
 import com.example.mobiledisco.player.PlayerEvent
 
 @Composable
 fun PlayerControls(
-    isPlaying: Boolean,
+    status: PlaybackStatus,
     onEvent: (PlayerEvent) -> Unit
 ) {
     Row(
@@ -39,8 +40,8 @@ fun PlayerControls(
             onEvent(PlayerEvent.PlayPause)
         }) {
             Icon(
-                imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                contentDescription = if (isPlaying) "Pausar" else "Reproduzir"
+                imageVector = if (status == PlaybackStatus.PLAYING) Icons.Default.Pause else Icons.Default.PlayArrow,
+                contentDescription = if (status == PlaybackStatus.PLAYING) "Pausar" else "Reproduzir"
             )
         }
 

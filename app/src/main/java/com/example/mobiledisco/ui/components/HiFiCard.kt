@@ -11,6 +11,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.mobiledisco.ui.theme.HiFiColors
+import com.example.mobiledisco.ui.theme.HiFiDimensions
 
 @Composable
 fun HiFiCard(
@@ -19,9 +21,12 @@ fun HiFiCard(
 ) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(HiFiDimensions.CardRadius),
+        colors = CardDefaults.cardColors(
+            containerColor = HiFiColors.BrushedMetal
+        ),
         border = BorderStroke(
-            1.dp,
+            HiFiDimensions.BorderWidth,
             MaterialTheme.colorScheme.outlineVariant
         ),
         elevation = CardDefaults.cardElevation(
@@ -29,7 +34,7 @@ fun HiFiCard(
         )
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
+            modifier = Modifier.padding(HiFiDimensions.CardPadding),
             content = content
         )
     }

@@ -17,15 +17,20 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mobiledisco.data.MusicMetadata
 import com.example.mobiledisco.data.Song
+import com.example.mobiledisco.player.PlaybackStatus
 import com.example.mobiledisco.player.PlayerEvent
 import com.example.mobiledisco.player.PlayerUiState
 import com.example.mobiledisco.ui.components.PlayerPanel
+import com.example.mobiledisco.ui.components.HiFiCard
+import com.example.mobiledisco.ui.theme.HiFiColors
+import com.example.mobiledisco.ui.theme.HiFiDimensions
 import com.example.mobiledisco.ui.theme.MobileDiscoTheme
 import com.example.mobiledisco.viewmodel.MusicViewModel
 import kotlinx.coroutines.delay
@@ -101,103 +106,102 @@ fun MobileDiscoScreen(
         }
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Top
+    Surface(
+        modifier = modifier.fillMaxSize(),
+        color = HiFiColors.WarmBackground
     ) {
-        Text(
-            text = "Mobile Disco",
-            style = MaterialTheme.typography.headlineMedium
-        )
-
-        Card(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            border = BorderStroke(
-                1.dp,
-                MaterialTheme.colorScheme.outline
-            )
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Top
         ) {
-            Column(
+            Text(
+                text = "Mobile Disco",
+                style = MaterialTheme.typography.headlineMedium
+            )
+
+            HiFiCard(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .padding(16.dp)
             ) {
-                Spacer(modifier = Modifier.height(20.dp))
-
-                val uiState = PlayerUiState(
-                    musica = musicaSelecionada,
-                    currentPosition = currentPosition,
-                    duration = duration,
-                    isPlaying = isPlaying
-                )
-
-                PlayerPanel(
-                    state = uiState,
-                    onEvent = onEvent
-                )
-
-                Spacer(modifier = Modifier.height(30.dp))
-
-                Button(onClick = { launcher.launch(arrayOf("audio/*")) }) {
-                    Text("Escolher música")
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                Button(
-                    onClick = {
-                        viewModel.limparBiblioteca()
-                        currentPosition = 0L
-                    }
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("🗑 Limpar biblioteca")
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    val uiState = PlayerUiState(
+                        musica = musicaSelecionada,
+                        currentPosition = currentPosition,
+                        duration = duration,
+                        playbackStatus = if (isPlaying) PlaybackStatus.PLAYING else PlaybackStatus.STOPPED
+                    )
+
+                    PlayerPanel(
+                        state = uiState,
+                        onEvent = onEvent
+                    )
+
+                    Spacer(modifier = Modifier.height(30.dp))
+
+                    Button(onClick = { launcher.launch(arrayOf("audio/*")) }) {
+                        Text("Escolher música")
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Button(
+                        onClick = {
+                            viewModel.limparBiblioteca()
+                            currentPosition = 0L
+                        }
+                    ) {
+                        Text("🗑 Limpar biblioteca")
+                    }
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-        HorizontalDivider()
+            HorizontalDivider()
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        Text(
-            text = "Biblioteca",
-            style = MaterialTheme.typography.titleMedium
-        )
+            Text(
+                text = "Biblioteca",
+                style = MaterialTheme.typography.titleMedium
+            )
 
-        Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-        LazyColumn(modifier = Modifier.height(200.dp)) {
-            items(biblioteca) { musica ->
-                Column(
-                    modifier = Modifier
-                        .padding(10.dp)
-                        .clickable {
-                            viewModel.selecionarMusica(musica)
-                        }
-                ) {
-                    Text(
-                        text = if (musicaSelecionada?.id == musica.id)
-                            "▶ ${musica.name}"
-                        else
-                            musica.name,
-                        style = if (musicaSelecionada?.id == musica.id)
-                            MaterialTheme.typography.titleMedium
-                        else
-                            MaterialTheme.typography.bodyLarge
-                    )
-                    Text(
-                        text = musica.artist,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+            LazyColumn(modifier = Modifier.height(200.dp)) {
+                items(biblioteca) { musica ->
+                    Column(
+                        modifier = Modifier
+                            .padding(10.dp)
+                            .clickable {
+                                viewModel.selecionarMusica(musica)
+                            }
+                    ) {
+                        Text(
+                            text = if (musicaSelecionada?.id == musica.id)
+                                "▶ ${musica.name}"
+                            else
+                                musica.name,
+                            style = if (musicaSelecionada?.id == musica.id)
+                                MaterialTheme.typography.titleMedium
+                            else
+                                MaterialTheme.typography.bodyLarge
+                        )
+                        Text(
+                            text = musica.artist,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = HiFiColors.PanelGray
+                        )
+                    }
                 }
             }
         }

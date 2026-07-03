@@ -7,13 +7,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.example.mobiledisco.player.PlayerEvent
 
 @Composable
 fun TimeSlider(
     currentPosition: Long,
     duration: Long,
-    onEvent: (PlayerEvent) -> Unit
+    onSeek: (Long) -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -24,7 +23,7 @@ fun TimeSlider(
         Slider(
             value = currentPosition.toFloat(),
             onValueChange = { novoValor ->
-                onEvent(PlayerEvent.Seek(novoValor.toLong()))
+                onSeek(novoValor.toLong())
             },
             valueRange = 0f..duration.toFloat().coerceAtLeast(0f),
             enabled = duration > 0,

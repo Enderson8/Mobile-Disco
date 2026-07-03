@@ -13,6 +13,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.dp
 import com.example.mobiledisco.data.Song
+import com.example.mobiledisco.ui.theme.HiFiDimensions
 
 @Composable
 fun AlbumCover(
@@ -29,7 +30,7 @@ fun AlbumCover(
                     shape = RoundedCornerShape(12.dp)
                 )
                 .clip(RoundedCornerShape(12.dp))
-                .size(240.dp)
+                .size(HiFiDimensions.AlbumCoverSize)
         )
         Spacer(modifier = Modifier.height(20.dp))
     }
