@@ -1,10 +1,11 @@
-package com.example.mobiledisco
+package com.example.mobiledisco.viewmodel
 
 import android.app.Application
 import android.net.Uri
 import android.content.Context
-import android.content.Intent
 import androidx.lifecycle.AndroidViewModel
+import com.example.mobiledisco.data.Song
+import com.example.mobiledisco.player.MusicPlayer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
@@ -36,9 +37,6 @@ class MusicViewModel(
     private fun carregarBiblioteca() {
         val musicasSalvas = prefs.all
         _biblioteca.value = musicasSalvas.map { item ->
-            // Note: Since we only saved name and uri in SharedPreferences previously,
-            // we'll use placeholder values for artist, album and duration.
-            // A more robust implementation would save the full Song object (e.g. via JSON).
             Song(
                 name = item.key,
                 artist = "Artista desconhecido",

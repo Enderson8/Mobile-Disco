@@ -1,4 +1,4 @@
-package com.example.mobiledisco
+package com.example.mobiledisco.ui.components
 
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
@@ -12,6 +12,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.dp
+import com.example.mobiledisco.data.Song
 
 @Composable
 fun AlbumCover(

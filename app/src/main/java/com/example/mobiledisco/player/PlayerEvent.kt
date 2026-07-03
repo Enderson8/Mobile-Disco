@@ -1,4 +1,4 @@
-package com.example.mobiledisco
+package com.example.mobiledisco.player
 
 sealed interface PlayerEvent {
 

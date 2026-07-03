@@ -1,4 +1,4 @@
-package com.example.mobiledisco
+package com.example.mobiledisco.data
 
 data class SongMetadata(
     val title: String,

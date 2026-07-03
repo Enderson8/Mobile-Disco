@@ -1,4 +1,4 @@
-package com.example.mobiledisco
+package com.example.mobiledisco.data
 
 import android.content.Context
 import android.media.MediaMetadataRetriever

@@ -1,4 +1,4 @@
-package com.example.mobiledisco
+package com.example.mobiledisco.data
 
 data class Song(
     val name: String,
