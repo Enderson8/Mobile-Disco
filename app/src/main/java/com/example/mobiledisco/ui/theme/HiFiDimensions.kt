@@ -4,9 +4,13 @@ import androidx.compose.ui.unit.dp
 
 object HiFiDimensions {
 
+    val Tiny = 2.dp
+
     val ExtraSmall = 4.dp
 
     val Small = 8.dp
+
+    val Normal = 12.dp
 
     val Medium = 16.dp
 
@@ -20,6 +24,10 @@ object HiFiDimensions {
 
     val BorderWidth = 1.dp
 
+    val ElevationMain = 4.dp
+
     val AlbumCoverSize = 220.dp
+
+    val LibraryListHeight = 200.dp
 
 }

@@ -6,9 +6,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.example.mobiledisco.player.PlayerEvent
 import com.example.mobiledisco.player.PlayerUiState
+import com.example.mobiledisco.ui.theme.HiFiDimensions
 
 @Composable
 fun PlayerPanel(
@@ -18,25 +18,25 @@ fun PlayerPanel(
     HiFiCard(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp)
+            .padding(HiFiDimensions.Medium)
     ) {
         LedIndicator(
             status = state.playbackStatus
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(HiFiDimensions.Medium))
 
         AlbumCover(
             musica = state.musica
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(HiFiDimensions.Medium))
 
         MusicInfo(
             musica = state.musica
         )
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(HiFiDimensions.CardPadding))
 
         TimeSlider(
             currentPosition = state.currentPosition,
@@ -46,7 +46,7 @@ fun PlayerPanel(
             }
         )
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(HiFiDimensions.CardPadding))
 
         PlayerControls(
             status = state.playbackStatus,

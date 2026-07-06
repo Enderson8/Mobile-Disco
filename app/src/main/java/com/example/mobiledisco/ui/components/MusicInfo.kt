@@ -8,8 +8,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.example.mobiledisco.data.Song
+import com.example.mobiledisco.ui.theme.HiFiDimensions
 
 @Composable
 fun MusicInfo(
@@ -28,7 +28,7 @@ fun MusicInfo(
         if (musica != null) {
 
             Spacer(
-                modifier = Modifier.height(4.dp)
+                modifier = Modifier.height(HiFiDimensions.ExtraSmall)
             )
 
             Text(
@@ -38,7 +38,7 @@ fun MusicInfo(
             )
 
             Spacer(
-                modifier = Modifier.height(2.dp)
+                modifier = Modifier.height(HiFiDimensions.Tiny)
             )
 
             Text(

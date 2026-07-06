@@ -30,7 +30,7 @@ fun HiFiCard(
             MaterialTheme.colorScheme.outlineVariant
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = 4.dp
+            defaultElevation = HiFiDimensions.ElevationMain
         )
     ) {
         Column(

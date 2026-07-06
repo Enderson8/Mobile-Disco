@@ -37,13 +37,14 @@ class MusicViewModel(
     private fun carregarBiblioteca() {
         val musicasSalvas = prefs.all
         _biblioteca.value = musicasSalvas.map { item ->
+            val uriString = item.value.toString()
             Song(
                 name = item.key,
                 artist = "Artista desconhecido",
                 album = "Álbum desconhecido",
                 duration = 0L,
-                uri = item.value.toString(),
-                id = System.currentTimeMillis(),
+                uri = uriString,
+                id = uriString.hashCode().toLong(),
                 cover = null
             )
         }

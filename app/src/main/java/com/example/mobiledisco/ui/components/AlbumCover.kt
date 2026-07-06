@@ -11,7 +11,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.unit.dp
 import com.example.mobiledisco.data.Song
 import com.example.mobiledisco.ui.theme.HiFiDimensions
 
@@ -26,12 +25,12 @@ fun AlbumCover(
             contentDescription = "Capa do álbum",
             modifier = Modifier
                 .shadow(
-                    elevation = 12.dp,
-                    shape = RoundedCornerShape(12.dp)
+                    elevation = HiFiDimensions.Normal,
+                    shape = RoundedCornerShape(HiFiDimensions.Normal)
                 )
-                .clip(RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(HiFiDimensions.Normal))
                 .size(HiFiDimensions.AlbumCoverSize)
         )
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(HiFiDimensions.CardPadding))
     }
 }
