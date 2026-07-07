@@ -9,46 +9,38 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.example.mobiledisco.data.Song
+import com.example.mobiledisco.ui.theme.HiFiColors
 import com.example.mobiledisco.ui.theme.HiFiDimensions
 
 @Composable
 fun MusicInfo(
     musica: Song?
 ) {
-
     Column(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-
         Text(
-            text = musica?.name ?: "Nenhuma música selecionada",
-            style = MaterialTheme.typography.titleLarge
+            text = musica?.name ?: "Selecione uma música",
+            style = MaterialTheme.typography.headlineSmall,
+            color = HiFiColors.Ivory
         )
 
         if (musica != null) {
-
-            Spacer(
-                modifier = Modifier.height(HiFiDimensions.ExtraSmall)
-            )
+            Spacer(modifier = Modifier.height(HiFiDimensions.ExtraSmall))
 
             Text(
                 text = musica.artist,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = MaterialTheme.typography.titleMedium,
+                color = HiFiColors.Ivory
             )
 
-            Spacer(
-                modifier = Modifier.height(HiFiDimensions.Tiny)
-            )
+            Spacer(modifier = Modifier.height(HiFiDimensions.Tiny))
 
             Text(
                 text = musica.album,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = MaterialTheme.typography.bodySmall,
+                color = HiFiColors.Sand
             )
-
         }
-
     }
-
 }
