@@ -43,7 +43,8 @@ class MusicPlayer(context: Context) {
     }
 
     fun stop() {
-        player.stop()
+        player.pause()
+        player.seekTo(0)
     }
 
     fun seekTo(position: Long) {
