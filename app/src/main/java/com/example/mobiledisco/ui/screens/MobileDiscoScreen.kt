@@ -12,8 +12,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -28,8 +30,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mobiledisco.data.MusicMetadata
 import com.example.mobiledisco.data.Song
@@ -111,31 +115,36 @@ fun MobileDiscoScreen(
 
     Surface(
         modifier = modifier.fillMaxSize(),
-        color = HiFiColors.WarmBackground
+        color = HiFiColors.Walnut900
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
+                .padding(vertical = HiFiDimensions.Large),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
+            // Título Principal Estilizado
             Text(
-                text = "Mobile Disco",
-                style = MaterialTheme.typography.headlineMedium
+                text = "MOBILE DISCO",
+                style = MaterialTheme.typography.headlineSmall,
+                color = HiFiColors.Sand,
+                letterSpacing = 4.sp,
+                fontWeight = FontWeight.Bold
             )
+
+            Spacer(modifier = Modifier.height(HiFiDimensions.Large))
 
             HiFiCard(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(HiFiDimensions.Medium)
+                    .padding(horizontal = HiFiDimensions.Medium)
             ) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Spacer(modifier = Modifier.height(HiFiDimensions.CardPadding))
-
                     val uiState = PlayerUiState(
                         musica = musicaSelecionada,
                         currentPosition = currentPosition,
@@ -150,28 +159,46 @@ fun MobileDiscoScreen(
 
                     Spacer(modifier = Modifier.height(HiFiDimensions.ExtraLarge))
 
-                    Button(onClick = { launcher.launch(arrayOf("audio/*")) }) {
-                        Text("Escolher música")
+                    // Botão Escolher Música
+                    Button(
+                        onClick = { launcher.launch(arrayOf("audio/*")) },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = HiFiColors.Copper,
+                            contentColor = HiFiColors.Ivory
+                        ),
+                        shape = RoundedCornerShape(HiFiDimensions.Small)
+                    ) {
+                        Text("ESCOLHER MÚSICA", letterSpacing = 1.sp)
                     }
 
-                    Spacer(modifier = Modifier.height(HiFiDimensions.CardPadding))
+                    Spacer(modifier = Modifier.height(HiFiDimensions.Medium))
 
+                    // Botão Limpar Biblioteca
                     Button(
                         onClick = {
                             viewModel.limparBiblioteca()
                             currentPosition = 0L
-                        }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = HiFiColors.Walnut700,
+                            contentColor = HiFiColors.Sand
+                        ),
+                        shape = RoundedCornerShape(HiFiDimensions.Small)
                     ) {
-                        Text("🗑 Limpar biblioteca")
+                        Text("LIMPAR BIBLIOTECA", letterSpacing = 1.sp)
                     }
                 }
             }
 
+            Spacer(modifier = Modifier.height(HiFiDimensions.ExtraLarge))
+
+            HorizontalDivider(
+                thickness = HiFiDimensions.BorderWidth,
+                color = HiFiColors.Divider,
+                modifier = Modifier.padding(horizontal = HiFiDimensions.Large)
+            )
+
             Spacer(modifier = Modifier.height(HiFiDimensions.Large))
-
-            HorizontalDivider()
-
-            Spacer(modifier = Modifier.height(HiFiDimensions.Medium))
 
             LibraryPanel(
                 songs = biblioteca,

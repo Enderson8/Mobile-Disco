@@ -83,7 +83,7 @@ fun LibraryPanel(
             color = HiFiColors.Sand
         )
 
-        Spacer(modifier = Modifier.height(HiFiDimensions.Medium))
+        Spacer(modifier = Modifier.height(HiFiDimensions.Large))
 
         // 3. Campo de Pesquisa
         OutlinedTextField(
@@ -117,7 +117,7 @@ fun LibraryPanel(
             )
         )
 
-        Spacer(modifier = Modifier.height(HiFiDimensions.Small))
+        Spacer(modifier = Modifier.height(HiFiDimensions.Medium))
 
         // 4. Seletor de Ordenação
         ExposedDropdownMenuBox(
@@ -182,7 +182,7 @@ fun LibraryPanel(
             }
         }
 
-        Spacer(modifier = Modifier.height(HiFiDimensions.Large))
+        Spacer(modifier = Modifier.height(HiFiDimensions.ExtraLarge))
 
         // Divisor principal do catálogo
         HorizontalDivider(
@@ -208,7 +208,7 @@ fun LibraryPanel(
                 Text(
                     text = "Adicione músicas usando o botão acima.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = HiFiColors.SoftBrown,
+                    color = HiFiColors.Sand,
                     textAlign = TextAlign.Center
                 )
             }

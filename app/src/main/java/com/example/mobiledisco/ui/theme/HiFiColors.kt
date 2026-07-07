@@ -33,11 +33,4 @@ object HiFiColors {
     val LedOn = Color(0xFF48D05F)
     val LedOff = Color(0xFF2B332B)
 
-    // --- Aliases Legados para manter compilação durante a transição ---
-    // Estes serão removidos nas próximas etapas da Sprint
-    val WoodBrown = Walnut700
-    val PanelGray = Espresso
-    val WarmBackground = Walnut900
-    val LedGreen = LedOn
-    val LedAmber = Copper
 }
