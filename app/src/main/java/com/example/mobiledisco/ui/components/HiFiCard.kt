@@ -23,11 +23,11 @@ fun HiFiCard(
         modifier = modifier,
         shape = RoundedCornerShape(HiFiDimensions.CardRadius),
         colors = CardDefaults.cardColors(
-            containerColor = HiFiColors.BrushedMetal
+            containerColor = HiFiColors.Espresso
         ),
         border = BorderStroke(
-            HiFiDimensions.BorderWidth,
-            MaterialTheme.colorScheme.outlineVariant
+            2.dp,
+            HiFiColors.CopperDark
         ),
         elevation = CardDefaults.cardElevation(
             defaultElevation = HiFiDimensions.ElevationMain

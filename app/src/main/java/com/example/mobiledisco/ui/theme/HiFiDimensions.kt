@@ -18,13 +18,13 @@ object HiFiDimensions {
 
     val ExtraLarge = 32.dp
 
-    val CardPadding = 20.dp
+    val CardPadding = 24.dp
 
-    val CardRadius = 20.dp
+    val CardRadius = 24.dp
 
     val BorderWidth = 1.dp
 
-    val ElevationMain = 4.dp
+    val ElevationMain = 8.dp
 
     val AlbumCoverSize = 220.dp
 
