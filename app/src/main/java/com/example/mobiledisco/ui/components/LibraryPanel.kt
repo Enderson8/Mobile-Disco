@@ -1,5 +1,11 @@
 package com.example.mobiledisco.ui.components
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -190,50 +196,60 @@ fun LibraryPanel(
             color = HiFiColors.Divider
         )
 
-        // 5. Estado da Lista
-        if (songs.isEmpty()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = HiFiDimensions.ExtraLarge),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
+        // 5. Estado da Lista Animado
+        AnimatedContent(
+            targetState = displayedSongs,
+            transitionSpec = {
+                fadeIn(animationSpec = tween(300)) togetherWith fadeOut(animationSpec = tween(300))
+            },
+            label = "libraryFade"
+        ) { targetSongs ->
+            if (songs.isEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = HiFiDimensions.ExtraLarge),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Sua biblioteca está vazia.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = HiFiColors.Sand,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(HiFiDimensions.Small))
+                    Text(
+                        text = "Adicione músicas usando o botão acima.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = HiFiColors.Sand,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            } else if (targetSongs.isEmpty()) {
                 Text(
-                    text = "Sua biblioteca está vazia.",
+                    text = "Nenhuma música encontrada.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = HiFiColors.Sand,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = HiFiDimensions.ExtraLarge),
                     textAlign = TextAlign.Center
                 )
-                Spacer(modifier = Modifier.height(HiFiDimensions.Small))
-                Text(
-                    text = "Adicione músicas usando o botão acima.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = HiFiColors.Sand,
-                    textAlign = TextAlign.Center
-                )
-            }
-        } else if (displayedSongs.isEmpty()) {
-            Text(
-                text = "Nenhuma música encontrada.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = HiFiColors.Sand,
-                modifier = Modifier.padding(vertical = HiFiDimensions.ExtraLarge),
-                textAlign = TextAlign.Center
-            )
-        } else {
-            LazyColumn(modifier = Modifier.height(HiFiDimensions.LibraryListHeight)) {
-                items(displayedSongs) { musica ->
-                    SongListItem(
-                        song = musica,
-                        isSelected = selectedSongId == musica.id,
-                        onClick = {
-                            onSongClick(musica)
-                        }
-                    )
-                    HorizontalDivider(
-                        thickness = HiFiDimensions.BorderWidth,
-                        color = HiFiColors.Divider
-                    )
+            } else {
+                LazyColumn(modifier = Modifier.height(HiFiDimensions.LibraryListHeight)) {
+                    items(targetSongs) { musica ->
+                        SongListItem(
+                            song = musica,
+                            isSelected = selectedSongId == musica.id,
+                            onClick = {
+                                onSongClick(musica)
+                            }
+                        )
+                        HorizontalDivider(
+                            thickness = HiFiDimensions.BorderWidth,
+                            color = HiFiColors.Divider
+                        )
+                    }
                 }
             }
         }

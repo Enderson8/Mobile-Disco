@@ -1,5 +1,6 @@
 package com.example.mobiledisco.ui.components
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -41,12 +42,20 @@ fun PlayerControls(
             size = 42
         )
 
-        HiFiControlButton(
-            icon = if (status == PlaybackStatus.PLAYING) Icons.Default.Pause else Icons.Default.PlayArrow,
-            contentDescription = if (status == PlaybackStatus.PLAYING) "Pausar" else "Reproduzir",
+        // Botão Play/Pause com Crossfade
+        HiFiControlButtonLayout(
             onClick = { onEvent(PlayerEvent.PlayPause) },
             size = 64
-        )
+        ) {
+            Crossfade(targetState = status, label = "playPauseFade") { currentStatus ->
+                Icon(
+                    imageVector = if (currentStatus == PlaybackStatus.PLAYING) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    contentDescription = if (currentStatus == PlaybackStatus.PLAYING) "Pausar" else "Reproduzir",
+                    modifier = Modifier.size((64 * 0.6).dp),
+                    tint = HiFiColors.Ivory
+                )
+            }
+        }
 
         HiFiControlButton(
             icon = Icons.Default.Stop,
@@ -71,6 +80,22 @@ fun HiFiControlButton(
     onClick: () -> Unit,
     size: Int
 ) {
+    HiFiControlButtonLayout(onClick = onClick, size = size) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            modifier = Modifier.size((size * 0.6).dp),
+            tint = HiFiColors.Ivory
+        )
+    }
+}
+
+@Composable
+fun HiFiControlButtonLayout(
+    onClick: () -> Unit,
+    size: Int,
+    content: @Composable () -> Unit
+) {
     Button(
         onClick = onClick,
         modifier = Modifier.size(size.dp),
@@ -85,11 +110,6 @@ fun HiFiControlButton(
         ),
         contentPadding = PaddingValues(0.dp)
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            modifier = Modifier.size((size * 0.6).dp),
-            tint = HiFiColors.Ivory
-        )
+        content()
     }
 }
