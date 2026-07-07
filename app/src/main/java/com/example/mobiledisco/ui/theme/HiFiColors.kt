@@ -4,17 +4,40 @@ import androidx.compose.ui.graphics.Color
 
 object HiFiColors {
 
-    val WoodBrown = Color(0xFF7A5C43)
+    // Fundo principal (madeira escura)
+    val Walnut900 = Color(0xFF1E1410)
+    val Walnut800 = Color(0xFF2B1D16)
+    val Walnut700 = Color(0xFF3A281E)
 
-    val PanelGray = Color(0xFF3C3C3C)
+    // Painéis
+    val Espresso = Color(0xFF241814)
+    val DarkPanel = Color(0xFF2D1F19)
 
-    val BrushedMetal = Color(0xFFE5E5E5)
+    // Metal
+    val BrushedMetal = Color(0xFF544A43)
 
-    val WarmBackground = Color(0xFFF4F1EC)
+    // Destaques
+    val Copper = Color(0xFFD07A2D)
+    val CopperDark = Color(0xFF9A541E)
+    val CopperLight = Color(0xFFE7A15C)
 
-    val LedGreen = Color(0xFF4CAF50)
+    // Textos
+    val Ivory = Color(0xFFE8D7C3)
+    val Sand = Color(0xFFC5A989)
+    val SoftBrown = Color(0xFF8E6E56)
 
-    val LedAmber = Color(0xFFFFB300)
+    // Separadores
+    val Divider = Color(0xFF4A352B)
 
-    val LedOff = Color(0xFF9E9E9E)
+    // Estados
+    val LedOn = Color(0xFF48D05F)
+    val LedOff = Color(0xFF2B332B)
+
+    // --- Aliases Legados para manter compilação durante a transição ---
+    // Estes serão removidos nas próximas etapas da Sprint
+    val WoodBrown = Walnut700
+    val PanelGray = Espresso
+    val WarmBackground = Walnut900
+    val LedGreen = LedOn
+    val LedAmber = Copper
 }
