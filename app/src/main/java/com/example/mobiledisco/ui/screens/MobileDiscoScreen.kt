@@ -26,6 +26,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,6 +39,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mobiledisco.data.MusicMetadata
 import com.example.mobiledisco.data.Song
 import com.example.mobiledisco.data.toSong
+import com.example.mobiledisco.importer.MusicImporter
 import com.example.mobiledisco.player.PlaybackStatus
 import com.example.mobiledisco.player.PlayerEvent
 import com.example.mobiledisco.player.PlayerUiState
@@ -48,13 +50,17 @@ import com.example.mobiledisco.ui.theme.HiFiColors
 import com.example.mobiledisco.ui.theme.HiFiDimensions
 import com.example.mobiledisco.ui.theme.MobileDiscoTheme
 import com.example.mobiledisco.viewmodel.MusicViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun MobileDiscoScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val viewModel: MusicViewModel = viewModel()
     val player = viewModel.player
     val isPlaying by viewModel.isPlaying.collectAsState()
@@ -86,6 +92,27 @@ fun MobileDiscoScreen(
             val novaMusica = metadata.toSong(it)
             viewModel.adicionarMusica(novaMusica)
             viewModel.selecionarMusica(novaMusica)
+        }
+    }
+
+    val folderLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        uri?.let { treeUri ->
+            context.contentResolver.takePersistableUriPermission(
+                treeUri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+
+            scope.launch {
+                val musicasEncontradas = withContext(Dispatchers.IO) {
+                    MusicImporter.importAlbum(context, treeUri)
+                }
+
+                if (musicasEncontradas.isNotEmpty()) {
+                    viewModel.adicionarMusicas(musicasEncontradas)
+                }
+            }
         }
     }
 
@@ -169,6 +196,20 @@ fun MobileDiscoScreen(
                         shape = RoundedCornerShape(HiFiDimensions.Small)
                     ) {
                         Text("ESCOLHER MÚSICA", letterSpacing = 1.sp)
+                    }
+
+                    Spacer(modifier = Modifier.height(HiFiDimensions.Medium))
+
+                    // Botão Importar Álbum
+                    Button(
+                        onClick = { folderLauncher.launch(null) },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = HiFiColors.Copper,
+                            contentColor = HiFiColors.Ivory
+                        ),
+                        shape = RoundedCornerShape(HiFiDimensions.Small)
+                    ) {
+                        Text("IMPORTAR ÁLBUM", letterSpacing = 1.sp)
                     }
 
                     Spacer(modifier = Modifier.height(HiFiDimensions.Medium))

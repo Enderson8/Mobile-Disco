@@ -4,10 +4,15 @@ import android.app.Application
 import android.net.Uri
 import android.content.Context
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.mobiledisco.data.MusicMetadata
 import com.example.mobiledisco.data.Song
 import com.example.mobiledisco.player.MusicPlayer
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MusicViewModel(
     application: Application
@@ -16,7 +21,7 @@ class MusicViewModel(
     val player = MusicPlayer(application)
 
     private val prefs = application.getSharedPreferences(
-        "mobile_disco",
+        "mobile_disco_v2", // Mudando a versão para invalidar prefs antigas e usar novo formato
         Context.MODE_PRIVATE
     )
 
@@ -32,45 +37,91 @@ class MusicViewModel(
 
     init {
         carregarBiblioteca()
+        atualizarMetadadosEmSegundoPlano(application)
     }
 
     private fun carregarBiblioteca() {
         val musicasSalvas = prefs.all
-        _biblioteca.value = musicasSalvas.map { item ->
-            val uriString = item.value.toString()
-            Song(
-                name = item.key,
-                artist = "Artista desconhecido",
-                album = "Álbum desconhecido",
-                duration = 0L,
-                uri = uriString,
-                id = uriString.hashCode().toLong(),
-                cover = null
-            )
+        _biblioteca.value = musicasSalvas.mapNotNull { item ->
+            try {
+                val data = item.value.toString().split(":::")
+                if (data.size >= 5) {
+                    Song(
+                        uri = data[0],
+                        name = data[1],
+                        artist = data[2],
+                        album = data[3],
+                        duration = data[4].toLongOrNull() ?: 0L,
+                        id = data[0].hashCode().toLong(),
+                        cover = null
+                    )
+                } else null
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }
+
+    private fun atualizarMetadadosEmSegundoPlano(context: Context) {
+        viewModelScope.launch {
+            val musicasAtualizadas = mutableListOf<Song>()
+            withContext(Dispatchers.IO) {
+                _biblioteca.value.forEach { song ->
+                    try {
+                        val uri = Uri.parse(song.uri)
+                        val metadata = MusicMetadata.read(context, uri)
+                        // Criamos um novo objeto Song com a capa carregada
+                        val songCompleto = Song(
+                            uri = song.uri,
+                            name = metadata.title,
+                            artist = metadata.artist,
+                            album = metadata.album,
+                            duration = metadata.duration,
+                            id = song.id,
+                            cover = metadata.cover
+                        )
+                        musicasAtualizadas.add(songCompleto)
+                    } catch (e: Exception) {
+                        musicasAtualizadas.add(song) // Mantém o original se der erro
+                    }
+                }
+            }
+            _biblioteca.value = musicasAtualizadas
         }
     }
 
     fun selecionarMusica(song: Song?) {
         _musicaSelecionada.value = song
         if (song != null) {
-            musicaAtualIndex = _biblioteca.value.indexOf(song)
+            musicaAtualIndex = _biblioteca.value.indexOfFirst { it.uri == song.uri }
             player.play(Uri.parse(song.uri))
         }
     }
 
     fun adicionarMusica(song: Song) {
-        _biblioteca.value = _biblioteca.value + song
+        if (_biblioteca.value.any { it.uri == song.uri }) return
 
-        prefs.edit()
-            .putString(
-                song.name,
-                song.uri
-            )
-            .apply()
+        _biblioteca.value = _biblioteca.value + song
+        persistirMusica(song)
     }
 
     fun adicionarMusicas(songs: List<Song>) {
-        _biblioteca.value = _biblioteca.value + songs
+        val novasMusicas = songs.filter { nova -> 
+            _biblioteca.value.none { it.uri == nova.uri } 
+        }
+        
+        if (novasMusicas.isEmpty()) return
+
+        _biblioteca.value = _biblioteca.value + novasMusicas
+        
+        novasMusicas.forEach { persistirMusica(it) }
+    }
+
+    private fun persistirMusica(song: Song) {
+        val metadataString = "${song.uri}:::${song.name}:::${song.artist}:::${song.album}:::${song.duration}"
+        prefs.edit()
+            .putString(song.uri, metadataString)
+            .apply()
     }
 
     fun limparBiblioteca() {
