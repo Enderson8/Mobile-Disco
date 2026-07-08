@@ -28,6 +28,8 @@ object HiFiDimensions {
 
     val AlbumCoverSize = 220.dp
 
+    val AlbumThumbnailSize = 60.dp
+
     val LibraryListHeight = 200.dp
 
 }

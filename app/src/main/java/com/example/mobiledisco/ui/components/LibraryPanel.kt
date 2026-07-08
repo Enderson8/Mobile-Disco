@@ -1,7 +1,6 @@
 package com.example.mobiledisco.ui.components
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -39,6 +38,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.mobiledisco.data.Song
+import com.example.mobiledisco.data.toAlbums
 import com.example.mobiledisco.ui.state.SortOption
 import com.example.mobiledisco.ui.theme.HiFiColors
 import com.example.mobiledisco.ui.theme.HiFiDimensions
@@ -53,16 +53,23 @@ fun LibraryPanel(
     var searchText by remember { mutableStateOf("") }
     var sortOption by remember { mutableStateOf(SortOption.NAME) }
     var expanded by remember { mutableStateOf(false) }
+    
+    // Estado para controlar quais álbuns estão expandidos (pelo nome + artista)
+    var expandedAlbums by remember { mutableStateOf(setOf<String>()) }
 
     val filteredSongs = songs.filter {
         it.name.contains(searchText, ignoreCase = true) ||
-                it.artist.contains(searchText, ignoreCase = true)
+                it.artist.contains(searchText, ignoreCase = true) ||
+                it.album.contains(searchText, ignoreCase = true)
     }
 
-    val displayedSongs = when (sortOption) {
-        SortOption.NAME -> filteredSongs.sortedWith(compareBy({ it.name.lowercase() }, { it.trackNumber }))
-        SortOption.ARTIST -> filteredSongs.sortedWith(compareBy({ it.artist.lowercase() }, { it.album.lowercase() }, { it.trackNumber }))
-        SortOption.ALBUM -> filteredSongs.sortedWith(compareBy({ it.album.lowercase() }, { it.trackNumber }))
+    val displayedAlbums = remember(filteredSongs, sortOption) {
+        val albums = filteredSongs.toAlbums()
+        when (sortOption) {
+            SortOption.NAME -> albums.sortedBy { it.name.lowercase() }
+            SortOption.ARTIST -> albums.sortedBy { it.artist.lowercase() }
+            SortOption.ALBUM -> albums.sortedBy { it.name.lowercase() }
+        }
     }
 
     Column(
@@ -84,7 +91,7 @@ fun LibraryPanel(
             text = if (searchText.isEmpty())
                 "${songs.size} músicas"
             else
-                "${displayedSongs.size} resultados",
+                "${displayedAlbums.size} resultados",
             style = MaterialTheme.typography.bodySmall,
             color = HiFiColors.Sand
         )
@@ -198,12 +205,12 @@ fun LibraryPanel(
 
         // 5. Estado da Lista Animado
         AnimatedContent(
-            targetState = displayedSongs,
+            targetState = displayedAlbums,
             transitionSpec = {
                 fadeIn(animationSpec = tween(300)) togetherWith fadeOut(animationSpec = tween(300))
             },
             label = "libraryFade"
-        ) { targetSongs ->
+        ) { targetAlbums ->
             if (songs.isEmpty()) {
                 Column(
                     modifier = Modifier
@@ -225,7 +232,7 @@ fun LibraryPanel(
                         textAlign = TextAlign.Center
                     )
                 }
-            } else if (targetSongs.isEmpty()) {
+            } else if (targetAlbums.isEmpty()) {
                 Text(
                     text = "Nenhuma música encontrada.",
                     style = MaterialTheme.typography.bodyMedium,
@@ -237,18 +244,43 @@ fun LibraryPanel(
                 )
             } else {
                 LazyColumn(modifier = Modifier.height(HiFiDimensions.LibraryListHeight)) {
-                    items(targetSongs) { musica ->
-                        SongListItem(
-                            song = musica,
-                            isSelected = selectedSongId == musica.id,
-                            onClick = {
-                                onSongClick(musica)
+                    targetAlbums.forEach { album ->
+                        val albumId = "${album.name}-${album.artist}"
+                        val isExpanded = expandedAlbums.contains(albumId)
+
+                        item(key = albumId) {
+                            AlbumListItem(
+                                album = album,
+                                isExpanded = isExpanded,
+                                onClick = {
+                                    expandedAlbums = if (isExpanded) {
+                                        expandedAlbums - albumId
+                                    } else {
+                                        expandedAlbums + albumId
+                                    }
+                                }
+                            )
+                        }
+
+                        if (isExpanded) {
+                            items(album.songs, key = { it.uri }) { song ->
+                                SongListItem(
+                                    modifier = Modifier.padding(start = 32.dp),
+                                    song = song,
+                                    isSelected = selectedSongId == song.id,
+                                    onClick = {
+                                        onSongClick(song)
+                                    }
+                                )
                             }
-                        )
-                        HorizontalDivider(
-                            thickness = HiFiDimensions.BorderWidth,
-                            color = HiFiColors.Divider
-                        )
+                        }
+
+                        item {
+                            HorizontalDivider(
+                                thickness = HiFiDimensions.BorderWidth,
+                                color = HiFiColors.Divider
+                            )
+                        }
                     }
                 }
             }

@@ -30,7 +30,8 @@ import com.example.mobiledisco.ui.theme.HiFiDimensions
 fun SongListItem(
     song: Song,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val backgroundColor by animateColorAsState(
         targetValue = if (isSelected) HiFiColors.DarkPanel else Color.Transparent,
@@ -45,7 +46,7 @@ fun SongListItem(
     )
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .background(backgroundColor)
             .clickable { onClick() }
