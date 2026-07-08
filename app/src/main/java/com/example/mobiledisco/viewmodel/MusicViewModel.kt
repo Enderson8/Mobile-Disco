@@ -21,7 +21,7 @@ class MusicViewModel(
     val player = MusicPlayer(application)
 
     private val prefs = application.getSharedPreferences(
-        "mobile_disco_v2", // Mudando a versão para invalidar prefs antigas e usar novo formato
+        "mobile_disco_v3", // Atualizando para v3 devido à adição do trackNumber
         Context.MODE_PRIVATE
     )
 
@@ -53,7 +53,8 @@ class MusicViewModel(
                         album = data[3],
                         duration = data[4].toLongOrNull() ?: 0L,
                         id = data[0].hashCode().toLong(),
-                        cover = null
+                        cover = null,
+                        trackNumber = data.getOrNull(5)?.toIntOrNull() ?: 0
                     )
                 } else null
             } catch (e: Exception) {
@@ -70,7 +71,7 @@ class MusicViewModel(
                     try {
                         val uri = Uri.parse(song.uri)
                         val metadata = MusicMetadata.read(context, uri)
-                        // Criamos um novo objeto Song com a capa carregada
+                        // Criamos um novo objeto Song com a capa carregada e trackNumber
                         val songCompleto = Song(
                             uri = song.uri,
                             name = metadata.title,
@@ -78,7 +79,8 @@ class MusicViewModel(
                             album = metadata.album,
                             duration = metadata.duration,
                             id = song.id,
-                            cover = metadata.cover
+                            cover = metadata.cover,
+                            trackNumber = metadata.trackNumber
                         )
                         musicasAtualizadas.add(songCompleto)
                     } catch (e: Exception) {
@@ -118,7 +120,7 @@ class MusicViewModel(
     }
 
     private fun persistirMusica(song: Song) {
-        val metadataString = "${song.uri}:::${song.name}:::${song.artist}:::${song.album}:::${song.duration}"
+        val metadataString = "${song.uri}:::${song.name}:::${song.artist}:::${song.album}:::${song.duration}:::${song.trackNumber}"
         prefs.edit()
             .putString(song.uri, metadataString)
             .apply()

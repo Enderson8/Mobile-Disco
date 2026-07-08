@@ -60,9 +60,9 @@ fun LibraryPanel(
     }
 
     val displayedSongs = when (sortOption) {
-        SortOption.NAME -> filteredSongs.sortedBy { it.name }
-        SortOption.ARTIST -> filteredSongs.sortedBy { it.artist }
-        SortOption.ALBUM -> filteredSongs.sortedBy { it.album }
+        SortOption.NAME -> filteredSongs.sortedWith(compareBy({ it.name.lowercase() }, { it.trackNumber }))
+        SortOption.ARTIST -> filteredSongs.sortedWith(compareBy({ it.artist.lowercase() }, { it.album.lowercase() }, { it.trackNumber }))
+        SortOption.ALBUM -> filteredSongs.sortedWith(compareBy({ it.album.lowercase() }, { it.trackNumber }))
     }
 
     Column(
@@ -135,7 +135,7 @@ fun LibraryPanel(
         ) {
             OutlinedTextField(
                 value = when (sortOption) {
-                    SortOption.NAME -> "Nome"
+                    SortOption.NAME -> "Música"
                     SortOption.ARTIST -> "Artista"
                     SortOption.ALBUM -> "Álbum"
                 },
@@ -165,7 +165,7 @@ fun LibraryPanel(
                 modifier = Modifier.background(HiFiColors.DarkPanel)
             ) {
                 DropdownMenuItem(
-                    text = { Text("Nome", color = HiFiColors.Ivory) },
+                    text = { Text("Música", color = HiFiColors.Ivory) },
                     onClick = {
                         sortOption = SortOption.NAME
                         expanded = false

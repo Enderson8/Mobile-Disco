@@ -72,7 +72,11 @@ fun SongListItem(
                     .weight(1f)
             ) {
                 Text(
-                    text = if (isSelected) "▶ ${song.name}" else song.name,
+                    text = buildString {
+                        if (song.trackNumber > 0) append("${song.trackNumber.toString().padStart(2, '0')}. ")
+                        if (isSelected) append("▶ ")
+                        append(song.name)
+                    },
                     style = MaterialTheme.typography.titleMedium,
                     color = HiFiColors.Ivory
                 )

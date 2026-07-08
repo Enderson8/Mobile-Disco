@@ -7,5 +7,6 @@ data class Song(
     val duration: Long,
     val uri: String,
     val id: Long,
-    val cover: ByteArray?
+    val cover: ByteArray?,
+    val trackNumber: Int = 0
 )

@@ -7,7 +7,8 @@ data class SongMetadata(
     val artist: String,
     val album: String,
     val duration: Long,
-    val cover: ByteArray?
+    val cover: ByteArray?,
+    val trackNumber: Int = 0
 )
 
 fun SongMetadata.toSong(uri: Uri): Song = Song(
@@ -17,5 +18,6 @@ fun SongMetadata.toSong(uri: Uri): Song = Song(
     duration = duration,
     uri = uri.toString(),
     id = uri.toString().hashCode().toLong(),
-    cover = cover
+    cover = cover,
+    trackNumber = trackNumber
 )
