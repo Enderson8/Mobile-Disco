@@ -31,9 +31,12 @@ class MusicViewModel(
     private val _musicaSelecionada = MutableStateFlow<Song?>(null)
     val musicaSelecionada = _musicaSelecionada.asStateFlow()
 
+    private val _filaReproducao = MutableStateFlow(listOf<Song>())
+    val filaReproducao = _filaReproducao.asStateFlow()
+
     val isPlaying = player.isPlaying
 
-    private var musicaAtualIndex = 0
+    private var indexNaFila = 0
 
     init {
         carregarBiblioteca()
@@ -95,8 +98,18 @@ class MusicViewModel(
     fun selecionarMusica(song: Song?) {
         _musicaSelecionada.value = song
         if (song != null) {
-            musicaAtualIndex = _biblioteca.value.indexOfFirst { it.uri == song.uri }
+            // Monta a fila com todas as músicas do mesmo álbum, ordenadas por faixa
+            val musicasDoMesmoAlbum = _biblioteca.value
+                .filter { it.album == song.album && it.artist == song.artist }
+                .sortedBy { it.trackNumber }
+            
+            _filaReproducao.value = musicasDoMesmoAlbum
+            indexNaFila = musicasDoMesmoAlbum.indexOfFirst { it.uri == song.uri }.coerceAtLeast(0)
+            
             player.play(Uri.parse(song.uri))
+        } else {
+            _filaReproducao.value = emptyList()
+            indexNaFila = 0
         }
     }
 
@@ -129,7 +142,8 @@ class MusicViewModel(
     fun limparBiblioteca() {
         _biblioteca.value = emptyList()
         _musicaSelecionada.value = null
-        musicaAtualIndex = 0
+        _filaReproducao.value = emptyList()
+        indexNaFila = 0
         prefs.edit()
             .clear()
             .apply()
@@ -145,18 +159,20 @@ class MusicViewModel(
     }
 
     fun proximaMusica() {
-        if (musicaAtualIndex < _biblioteca.value.size - 1) {
-            musicaAtualIndex++
-            val proxima = _biblioteca.value[musicaAtualIndex]
+        val fila = _filaReproducao.value
+        if (fila.isNotEmpty() && indexNaFila < fila.size - 1) {
+            indexNaFila++
+            val proxima = fila[indexNaFila]
             _musicaSelecionada.value = proxima
             player.play(Uri.parse(proxima.uri))
         }
     }
 
     fun anteriorMusica() {
-        if (musicaAtualIndex > 0) {
-            musicaAtualIndex--
-            val anterior = _biblioteca.value[musicaAtualIndex]
+        val fila = _filaReproducao.value
+        if (fila.isNotEmpty() && indexNaFila > 0) {
+            indexNaFila--
+            val anterior = fila[indexNaFila]
             _musicaSelecionada.value = anterior
             player.play(Uri.parse(anterior.uri))
         }
