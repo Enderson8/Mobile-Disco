@@ -23,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,15 +38,30 @@ import com.example.mobiledisco.ui.theme.HiFiDimensions
 
 @Composable
 fun AlbumListItem(
-    album: Album,
+    album: Album?, // Tornando o álbum opcional por segurança
     isExpanded: Boolean,
     onClick: () -> Unit
 ) {
+    // Se o álbum for nulo (não deveria ser, mas protege de crashes), não desenha nada
+    if (album == null) return
+
     val rotation by animateFloatAsState(
         targetValue = if (isExpanded) 90f else 0f,
         animationSpec = tween(300),
         label = "arrowRotation"
     )
+
+    // Otimização e Blindagem: Decodifica apenas se necessário e trata nulos com segurança
+    val albumBitmap = remember(album.cover) {
+        album.cover?.let { bytes ->
+            try {
+                // decodeByteArray pode retornar null se os bytes forem inválidos
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }
 
     Row(
         modifier = Modifier
@@ -74,10 +90,9 @@ fun AlbumListItem(
                 .border(1.dp, HiFiColors.CopperDark, RoundedCornerShape(HiFiDimensions.ExtraSmall))
                 .background(HiFiColors.DarkPanel)
         ) {
-            if (album.cover != null) {
-                val bitmap = BitmapFactory.decodeByteArray(album.cover, 0, album.cover.size)
+            if (albumBitmap != null) {
                 Image(
-                    bitmap = bitmap.asImageBitmap(),
+                    bitmap = albumBitmap,
                     contentDescription = null,
                     modifier = Modifier.fillMaxWidth(),
                     contentScale = ContentScale.Crop
@@ -98,19 +113,19 @@ fun AlbumListItem(
             modifier = Modifier.weight(1f)
         ) {
             Text(
-                text = album.name,
+                text = album.name ?: "Álbum desconhecido",
                 style = MaterialTheme.typography.titleMedium,
                 color = HiFiColors.Ivory
             )
             
             Text(
-                text = album.artist,
+                text = album.artist ?: "Artista desconhecido",
                 style = MaterialTheme.typography.bodyMedium,
                 color = HiFiColors.Sand
             )
 
             Text(
-                text = "${album.songs.size} faixas",
+                text = "${album.songs?.size ?: 0} faixas",
                 style = MaterialTheme.typography.bodySmall,
                 color = HiFiColors.SoftBrown
             )
