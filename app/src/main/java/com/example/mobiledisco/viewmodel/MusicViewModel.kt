@@ -3,6 +3,7 @@ package com.example.mobiledisco.viewmodel
 import android.app.Application
 import android.net.Uri
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mobiledisco.data.MusicMetadata
@@ -41,6 +42,12 @@ class MusicViewModel(
     init {
         carregarBiblioteca()
         atualizarMetadadosEmSegundoPlano(application)
+        
+        // Registro do Auto Next: quando a música termina, chama a próxima
+        player.onSongFinished = {
+            Log.d("MobileDisco", "Callback onSongFinished recebido no ViewModel. Chamando proximaMusica().")
+            proximaMusica()
+        }
     }
 
     private fun carregarBiblioteca() {
@@ -159,11 +166,21 @@ class MusicViewModel(
     }
 
     fun proximaMusica() {
+
         val fila = _filaReproducao.value
+
         if (fila.isNotEmpty() && indexNaFila < fila.size - 1) {
+
             indexNaFila++
+
+            Log.d("MobileDisco", "Novo índice: $indexNaFila")
+
             val proxima = fila[indexNaFila]
+
+            Log.d("MobileDisco", "Tocando: ${proxima.name}")
+
             _musicaSelecionada.value = proxima
+
             player.play(Uri.parse(proxima.uri))
         }
     }

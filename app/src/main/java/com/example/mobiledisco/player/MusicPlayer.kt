@@ -2,6 +2,7 @@ package com.example.mobiledisco.player
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,10 +16,19 @@ class MusicPlayer(context: Context) {
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying = _isPlaying.asStateFlow()
 
+    var onSongFinished: (() -> Unit)? = null
+
     init {
         player.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 _isPlaying.value = isPlaying
+            }
+
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == Player.STATE_ENDED) {
+                    Log.d("MobileDisco", "STATE_ENDED detectado no MusicPlayer")
+                    onSongFinished?.invoke()
+                }
             }
         })
     }
