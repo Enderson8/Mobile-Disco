@@ -14,4 +14,5 @@ sealed interface PlayerEvent {
         val position: Long
     ) : PlayerEvent
 
+    data object ChangePlaybackMode : PlayerEvent
 }

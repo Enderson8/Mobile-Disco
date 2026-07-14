@@ -15,7 +15,8 @@ import com.example.mobiledisco.ui.theme.HiFiDimensions
 @Composable
 fun PlayerPanel(
     state: PlayerUiState,
-    onEvent: (PlayerEvent) -> Unit
+    onEvent: (PlayerEvent) -> Unit,
+    onCoverClick: () -> Unit = {}
 ) {
     HiFiCard(
         modifier = Modifier
@@ -29,7 +30,8 @@ fun PlayerPanel(
         Spacer(modifier = Modifier.height(HiFiDimensions.Large))
 
         AlbumCover(
-            musica = state.musica
+            musica = state.musica,
+            onClick = onCoverClick
         )
 
         Spacer(modifier = Modifier.height(HiFiDimensions.Large))

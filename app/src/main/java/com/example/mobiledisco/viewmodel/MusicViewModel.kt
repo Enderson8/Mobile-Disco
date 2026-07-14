@@ -9,7 +9,9 @@ import androidx.lifecycle.viewModelScope
 import com.example.mobiledisco.data.MusicMetadata
 import com.example.mobiledisco.data.Song
 import com.example.mobiledisco.player.MusicPlayer
+import com.example.mobiledisco.player.PlayerEvent
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -35,6 +37,12 @@ class MusicViewModel(
     private val _filaReproducao = MutableStateFlow(listOf<Song>())
     val filaReproducao = _filaReproducao.asStateFlow()
 
+    private val _currentPosition = MutableStateFlow(0L)
+    val currentPosition = _currentPosition.asStateFlow()
+
+    private val _duration = MutableStateFlow(0L)
+    val duration = _duration.asStateFlow()
+
     val isPlaying = player.isPlaying
 
     private var indexNaFila = 0
@@ -47,6 +55,17 @@ class MusicViewModel(
         player.onSongFinished = {
             Log.d("MobileDisco", "Callback onSongFinished recebido no ViewModel. Chamando proximaMusica().")
             proximaMusica()
+        }
+
+        // Polling de posição e duração
+        viewModelScope.launch {
+            while (true) {
+                if (player.isPlaying.value) {
+                    _currentPosition.value = player.getCurrentPosition()
+                    _duration.value = player.getDuration()
+                }
+                delay(1000)
+            }
         }
     }
 
@@ -113,7 +132,7 @@ class MusicViewModel(
             _filaReproducao.value = musicasDoMesmoAlbum
             indexNaFila = musicasDoMesmoAlbum.indexOfFirst { it.uri == song.uri }.coerceAtLeast(0)
             
-            player.play(Uri.parse(song.uri))
+            player.play(song)
         } else {
             _filaReproducao.value = emptyList()
             indexNaFila = 0
@@ -150,6 +169,8 @@ class MusicViewModel(
         _biblioteca.value = emptyList()
         _musicaSelecionada.value = null
         _filaReproducao.value = emptyList()
+        _currentPosition.value = 0L
+        _duration.value = 0L
         indexNaFila = 0
         prefs.edit()
             .clear()
@@ -157,12 +178,39 @@ class MusicViewModel(
         player.stop()
     }
 
-    fun toggle(uri: Uri) {
-        player.togglePlayback(uri)
+    fun toggle() {
+        player.togglePlayback()
     }
 
     fun stop() {
         player.stop()
+    }
+
+    fun handlePlayerEvent(event: PlayerEvent) {
+        when (event) {
+            PlayerEvent.PlayPause -> {
+                _musicaSelecionada.value?.let {
+                    toggle()
+                }
+            }
+            PlayerEvent.Stop -> {
+                stop()
+                _currentPosition.value = 0L
+            }
+            PlayerEvent.Next -> {
+                proximaMusica()
+            }
+            PlayerEvent.Previous -> {
+                anteriorMusica()
+            }
+            is PlayerEvent.Seek -> {
+                player.seekTo(event.position)
+                _currentPosition.value = event.position
+            }
+            PlayerEvent.ChangePlaybackMode -> {
+                // Implementação futura
+            }
+        }
     }
 
     fun proximaMusica() {
@@ -181,7 +229,7 @@ class MusicViewModel(
 
             _musicaSelecionada.value = proxima
 
-            player.play(Uri.parse(proxima.uri))
+            player.play(proxima)
         }
     }
 
@@ -191,7 +239,7 @@ class MusicViewModel(
             indexNaFila--
             val anterior = fila[indexNaFila]
             _musicaSelecionada.value = anterior
-            player.play(Uri.parse(anterior.uri))
+            player.play(anterior)
         }
     }
 

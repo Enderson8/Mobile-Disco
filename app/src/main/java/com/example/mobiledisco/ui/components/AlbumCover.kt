@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.clickable
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -20,13 +21,15 @@ import com.example.mobiledisco.ui.theme.HiFiDimensions
 
 @Composable
 fun AlbumCover(
-    musica: Song?
+    musica: Song?,
+    onClick: () -> Unit = {}
 ) {
     musica?.cover?.let { bytes ->
         val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
         
         Box(
             modifier = Modifier
+                .clickable { onClick() }
                 .shadow(
                     elevation = 4.dp,
                     shape = RoundedCornerShape(HiFiDimensions.Normal)
