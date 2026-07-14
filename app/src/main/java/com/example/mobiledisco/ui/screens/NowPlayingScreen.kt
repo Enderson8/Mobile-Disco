@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.example.mobiledisco.player.PlaybackStatus
 import com.example.mobiledisco.player.PlayerEvent
 import com.example.mobiledisco.player.PlayerUiState
 import com.example.mobiledisco.ui.components.AlbumCover
@@ -50,7 +51,11 @@ fun NowPlayingScreen(
 
             Spacer(modifier = Modifier.height(HiFiDimensions.ExtraLarge))
 
-            AlbumCover(musica = state.musica)
+            // Capa do Álbum (com pulso animado quando toca)
+            AlbumCover(
+                musica = state.musica,
+                isPlaying = state.playbackStatus == PlaybackStatus.PLAYING
+            )
 
             Spacer(modifier = Modifier.height(HiFiDimensions.Large))
 

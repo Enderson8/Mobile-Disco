@@ -35,7 +35,7 @@ fun MusicInfo(
             Text(
                 text = musica.artist,
                 style = MaterialTheme.typography.titleMedium,
-                color = HiFiColors.Ivory,
+                color = HiFiColors.Sand,
                 textAlign = TextAlign.Center
             )
 
@@ -44,7 +44,7 @@ fun MusicInfo(
             Text(
                 text = musica.album,
                 style = MaterialTheme.typography.bodySmall,
-                color = HiFiColors.Sand,
+                color = HiFiColors.SoftBrown,
                 textAlign = TextAlign.Center
             )
         }
