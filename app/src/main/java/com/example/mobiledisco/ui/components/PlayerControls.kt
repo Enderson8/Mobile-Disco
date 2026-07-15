@@ -10,6 +10,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material.icons.filled.RepeatOne
+import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.Stop
@@ -19,15 +22,18 @@ import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.example.mobiledisco.player.PlaybackStatus
 import com.example.mobiledisco.player.PlayerEvent
+import com.example.mobiledisco.player.PlayerUiState
+import com.example.mobiledisco.player.RepeatMode
 import com.example.mobiledisco.ui.theme.HiFiColors
 
 @Composable
 fun PlayerControls(
-    status: PlaybackStatus,
+    state: PlayerUiState,
     onEvent: (PlayerEvent) -> Unit
 ) {
     Row(
@@ -35,6 +41,15 @@ fun PlayerControls(
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Shuffle
+        HiFiControlButton(
+            icon = Icons.Default.Shuffle,
+            contentDescription = "Shuffle",
+            onClick = { onEvent(PlayerEvent.ToggleShuffle) },
+            size = 42,
+            isActive = state.isShuffleEnabled
+        )
+
         HiFiControlButton(
             icon = Icons.Default.SkipPrevious,
             contentDescription = "Anterior",
@@ -47,7 +62,7 @@ fun PlayerControls(
             onClick = { onEvent(PlayerEvent.PlayPause) },
             size = 64
         ) {
-            Crossfade(targetState = status, label = "playPauseFade") { currentStatus ->
+            Crossfade(targetState = state.playbackStatus, label = "playPauseFade") { currentStatus ->
                 Icon(
                     imageVector = if (currentStatus == PlaybackStatus.PLAYING) Icons.Default.Pause else Icons.Default.PlayArrow,
                     contentDescription = if (currentStatus == PlaybackStatus.PLAYING) "Pausar" else "Reproduzir",
@@ -58,17 +73,23 @@ fun PlayerControls(
         }
 
         HiFiControlButton(
-            icon = Icons.Default.Stop,
-            contentDescription = "Parar",
-            onClick = { onEvent(PlayerEvent.Stop) },
-            size = 42
-        )
-
-        HiFiControlButton(
             icon = Icons.Default.SkipNext,
             contentDescription = "Próximo",
             onClick = { onEvent(PlayerEvent.Next) },
             size = 42
+        )
+
+        // Repeat
+        val repeatIcon = when (state.repeatMode) {
+            RepeatMode.ONE -> Icons.Default.RepeatOne
+            else -> Icons.Default.Repeat
+        }
+        HiFiControlButton(
+            icon = repeatIcon,
+            contentDescription = "Repeat",
+            onClick = { onEvent(PlayerEvent.ToggleRepeat) },
+            size = 42,
+            isActive = state.repeatMode != RepeatMode.NONE
         )
     }
 }
@@ -78,9 +99,14 @@ fun HiFiControlButton(
     icon: ImageVector,
     contentDescription: String,
     onClick: () -> Unit,
-    size: Int
+    size: Int,
+    isActive: Boolean = false
 ) {
-    HiFiControlButtonLayout(onClick = onClick, size = size) {
+    HiFiControlButtonLayout(
+        onClick = onClick, 
+        size = size,
+        containerColor = if (isActive) HiFiColors.CopperLight else HiFiColors.Copper
+    ) {
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
@@ -94,6 +120,7 @@ fun HiFiControlButton(
 fun HiFiControlButtonLayout(
     onClick: () -> Unit,
     size: Int,
+    containerColor: Color = HiFiColors.Copper,
     content: @Composable () -> Unit
 ) {
     Button(
@@ -101,7 +128,7 @@ fun HiFiControlButtonLayout(
         modifier = Modifier.size(size.dp),
         shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = HiFiColors.Copper,
+            containerColor = containerColor,
             contentColor = HiFiColors.Ivory
         ),
         elevation = ButtonDefaults.buttonElevation(

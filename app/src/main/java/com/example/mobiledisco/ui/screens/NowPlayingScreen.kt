@@ -72,7 +72,7 @@ fun NowPlayingScreen(
             Spacer(modifier = Modifier.height(HiFiDimensions.Large))
 
             PlayerControls(
-                status = state.playbackStatus,
+                state = state,
                 onEvent = onEvent
             )
         }

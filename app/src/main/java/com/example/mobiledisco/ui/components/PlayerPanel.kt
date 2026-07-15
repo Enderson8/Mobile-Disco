@@ -67,7 +67,7 @@ fun PlayerPanel(
         Spacer(modifier = Modifier.height(HiFiDimensions.ExtraLarge))
 
         PlayerControls(
-            status = state.playbackStatus,
+            state = state,
             onEvent = onEvent
         )
     }

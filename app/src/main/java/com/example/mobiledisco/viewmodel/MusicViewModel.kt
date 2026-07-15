@@ -10,6 +10,7 @@ import com.example.mobiledisco.data.MusicMetadata
 import com.example.mobiledisco.data.Song
 import com.example.mobiledisco.player.MusicPlayer
 import com.example.mobiledisco.player.PlayerEvent
+import com.example.mobiledisco.player.RepeatMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,7 +25,7 @@ class MusicViewModel(
     val player = MusicPlayer(application)
 
     private val prefs = application.getSharedPreferences(
-        "mobile_disco_v3", // Atualizando para v3 devido à adição do trackNumber
+        "mobile_disco_v3",
         Context.MODE_PRIVATE
     )
 
@@ -43,28 +44,75 @@ class MusicViewModel(
     private val _duration = MutableStateFlow(0L)
     val duration = _duration.asStateFlow()
 
+    private val _isShuffleEnabled = MutableStateFlow(false)
+    val isShuffleEnabled = _isShuffleEnabled.asStateFlow()
+
+    private val _repeatMode = MutableStateFlow(RepeatMode.NONE)
+    val repeatMode = _repeatMode.asStateFlow()
+
     val isPlaying = player.isPlaying
 
     private var indexNaFila = 0
+    private var filaOriginal = listOf<Song>()
 
     init {
+        carregarConfiguracoes()
         carregarBiblioteca()
         atualizarMetadadosEmSegundoPlano(application)
         
-        // Registro do Auto Next: quando a música termina, chama a próxima
         player.onSongFinished = {
-            Log.d("MobileDisco", "Callback onSongFinished recebido no ViewModel. Chamando proximaMusica().")
-            proximaMusica()
+            handleAutoNext()
         }
 
-        // Polling de posição e duração
+        player.onPlayerReady = {
+            restaurarUltimaSessao()
+        }
+
         viewModelScope.launch {
             while (true) {
                 if (player.isPlaying.value) {
-                    _currentPosition.value = player.getCurrentPosition()
+                    val pos = player.getCurrentPosition()
+                    _currentPosition.value = pos
                     _duration.value = player.getDuration()
+                    
+                    _musicaSelecionada.value?.let { 
+                        prefs.edit()
+                            .putLong("SESSION_LAST_POS", pos)
+                            .putBoolean("SESSION_WAS_PLAYING", true)
+                            .apply()
+                    }
+                } else if (_musicaSelecionada.value != null) {
+                    prefs.edit().putBoolean("SESSION_WAS_PLAYING", false).apply()
                 }
                 delay(1000)
+            }
+        }
+    }
+
+    private fun carregarConfiguracoes() {
+        _isShuffleEnabled.value = prefs.getBoolean("SETTINGS_SHUFFLE", false)
+        val repeatOrdinal = prefs.getInt("SETTINGS_REPEAT", RepeatMode.NONE.ordinal)
+        _repeatMode.value = RepeatMode.values()[repeatOrdinal]
+    }
+
+    private fun restaurarUltimaSessao() {
+        val lastUri = prefs.getString("SESSION_LAST_URI", null)
+        val lastPos = prefs.getLong("SESSION_LAST_POS", 0L)
+        val wasPlaying = prefs.getBoolean("SESSION_WAS_PLAYING", false)
+
+        if (lastUri != null) {
+            val song = _biblioteca.value.find { it.uri == lastUri }
+            if (song != null) {
+                _musicaSelecionada.value = song
+                _currentPosition.value = lastPos
+                
+                configurarFila(song)
+
+                if (wasPlaying) {
+                    player.play(song, lastPos)
+                } else {
+                    player.prepare(song, lastPos)
+                }
             }
         }
     }
@@ -100,7 +148,6 @@ class MusicViewModel(
                     try {
                         val uri = Uri.parse(song.uri)
                         val metadata = MusicMetadata.read(context, uri)
-                        // Criamos um novo objeto Song com a capa carregada e trackNumber
                         val songCompleto = Song(
                             uri = song.uri,
                             name = metadata.title,
@@ -112,8 +159,12 @@ class MusicViewModel(
                             trackNumber = metadata.trackNumber
                         )
                         musicasAtualizadas.add(songCompleto)
+                        
+                        if (_musicaSelecionada.value?.uri == songCompleto.uri) {
+                            _musicaSelecionada.value = songCompleto
+                        }
                     } catch (e: Exception) {
-                        musicasAtualizadas.add(song) // Mantém o original se der erro
+                        musicasAtualizadas.add(song)
                     }
                 }
             }
@@ -124,24 +175,48 @@ class MusicViewModel(
     fun selecionarMusica(song: Song?) {
         _musicaSelecionada.value = song
         if (song != null) {
-            // Monta a fila com todas as músicas do mesmo álbum, ordenadas por faixa
-            val musicasDoMesmoAlbum = _biblioteca.value
-                .filter { it.album == song.album && it.artist == song.artist }
-                .sortedBy { it.trackNumber }
-            
-            _filaReproducao.value = musicasDoMesmoAlbum
-            indexNaFila = musicasDoMesmoAlbum.indexOfFirst { it.uri == song.uri }.coerceAtLeast(0)
-            
+            prefs.edit()
+                .putString("SESSION_LAST_URI", song.uri)
+                .putBoolean("SESSION_WAS_PLAYING", true)
+                .apply()
+
+            configurarFila(song)
             player.play(song)
         } else {
             _filaReproducao.value = emptyList()
             indexNaFila = 0
+            prefs.edit().remove("SESSION_LAST_URI").remove("SESSION_LAST_POS").remove("SESSION_WAS_PLAYING").apply()
         }
+    }
+
+    private fun configurarFila(song: Song) {
+        filaOriginal = _biblioteca.value
+            .filter { it.album == song.album && it.artist == song.artist }
+            .sortedBy { it.trackNumber }
+        
+        atualizarFilaVisual(song)
+    }
+
+    private fun atualizarFilaVisual(songAtual: Song?) {
+        val novaFila = if (_isShuffleEnabled.value) {
+            val shuffled = filaOriginal.shuffled().toMutableList()
+            songAtual?.let { current ->
+                shuffled.remove(current)
+                shuffled.add(0, current)
+            }
+            shuffled
+        } else {
+            filaOriginal
+        }
+        
+        _filaReproducao.value = novaFila
+        indexNaFila = if (songAtual != null) {
+            novaFila.indexOfFirst { it.uri == songAtual.uri }.coerceAtLeast(0)
+        } else 0
     }
 
     fun adicionarMusica(song: Song) {
         if (_biblioteca.value.any { it.uri == song.uri }) return
-
         _biblioteca.value = _biblioteca.value + song
         persistirMusica(song)
     }
@@ -150,11 +225,8 @@ class MusicViewModel(
         val novasMusicas = songs.filter { nova -> 
             _biblioteca.value.none { it.uri == nova.uri } 
         }
-        
         if (novasMusicas.isEmpty()) return
-
         _biblioteca.value = _biblioteca.value + novasMusicas
-        
         novasMusicas.forEach { persistirMusica(it) }
     }
 
@@ -184,63 +256,84 @@ class MusicViewModel(
 
     fun stop() {
         player.stop()
+        _currentPosition.value = 0L
+        prefs.edit()
+            .putLong("SESSION_LAST_POS", 0L)
+            .putBoolean("SESSION_WAS_PLAYING", false)
+            .apply()
     }
 
     fun handlePlayerEvent(event: PlayerEvent) {
         when (event) {
-            PlayerEvent.PlayPause -> {
-                _musicaSelecionada.value?.let {
-                    toggle()
-                }
-            }
-            PlayerEvent.Stop -> {
-                stop()
-                _currentPosition.value = 0L
-            }
-            PlayerEvent.Next -> {
-                proximaMusica()
-            }
-            PlayerEvent.Previous -> {
-                anteriorMusica()
-            }
+            PlayerEvent.PlayPause -> _musicaSelecionada.value?.let { toggle() }
+            PlayerEvent.Stop -> stop()
+            PlayerEvent.Next -> proximaMusica()
+            PlayerEvent.Previous -> anteriorMusica()
             is PlayerEvent.Seek -> {
                 player.seekTo(event.position)
                 _currentPosition.value = event.position
             }
-            PlayerEvent.ChangePlaybackMode -> {
-                // Implementação futura
-            }
+            PlayerEvent.ToggleShuffle -> toggleShuffle()
+            PlayerEvent.ToggleRepeat -> toggleRepeat()
+        }
+    }
+
+    private fun toggleShuffle() {
+        val newValue = !_isShuffleEnabled.value
+        _isShuffleEnabled.value = newValue
+        prefs.edit().putBoolean("SETTINGS_SHUFFLE", newValue).apply()
+        atualizarFilaVisual(_musicaSelecionada.value)
+    }
+
+    private fun toggleRepeat() {
+        val modes = RepeatMode.values()
+        val nextMode = modes[(_repeatMode.value.ordinal + 1) % modes.size]
+        _repeatMode.value = nextMode
+        prefs.edit().putInt("SETTINGS_REPEAT", nextMode.ordinal).apply()
+    }
+
+    private fun handleAutoNext() {
+        if (_repeatMode.value == RepeatMode.ONE) {
+            _musicaSelecionada.value?.let { player.play(it) }
+        } else {
+            proximaMusica()
         }
     }
 
     fun proximaMusica() {
-
         val fila = _filaReproducao.value
-
-        if (fila.isNotEmpty() && indexNaFila < fila.size - 1) {
-
-            indexNaFila++
-
-            Log.d("MobileDisco", "Novo índice: $indexNaFila")
-
-            val proxima = fila[indexNaFila]
-
-            Log.d("MobileDisco", "Tocando: ${proxima.name}")
-
-            _musicaSelecionada.value = proxima
-
-            player.play(proxima)
+        if (fila.isNotEmpty()) {
+            if (indexNaFila < fila.size - 1) {
+                indexNaFila++
+                tocarMusicaDaFila(fila[indexNaFila])
+            } else if (_repeatMode.value == RepeatMode.ALL) {
+                indexNaFila = 0
+                tocarMusicaDaFila(fila[indexNaFila])
+            }
         }
     }
 
     fun anteriorMusica() {
         val fila = _filaReproducao.value
-        if (fila.isNotEmpty() && indexNaFila > 0) {
-            indexNaFila--
-            val anterior = fila[indexNaFila]
-            _musicaSelecionada.value = anterior
-            player.play(anterior)
+        if (fila.isNotEmpty()) {
+            if (indexNaFila > 0) {
+                indexNaFila--
+                tocarMusicaDaFila(fila[indexNaFila])
+            } else if (_repeatMode.value == RepeatMode.ALL) {
+                indexNaFila = fila.size - 1
+                tocarMusicaDaFila(fila[indexNaFila])
+            }
         }
+    }
+
+    private fun tocarMusicaDaFila(song: Song) {
+        _musicaSelecionada.value = song
+        prefs.edit()
+            .putString("SESSION_LAST_URI", song.uri)
+            .putLong("SESSION_LAST_POS", 0L)
+            .putBoolean("SESSION_WAS_PLAYING", true)
+            .apply()
+        player.play(song)
     }
 
     override fun onCleared() {

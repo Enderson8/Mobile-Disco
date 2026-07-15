@@ -25,6 +25,7 @@ class MusicPlayer(context: Context) {
     val isPlaying = _isPlaying.asStateFlow()
 
     var onSongFinished: (() -> Unit)? = null
+    var onPlayerReady: (() -> Unit)? = null
 
     init {
         val sessionToken = SessionToken(context, ComponentName(context, PlaybackService::class.java))
@@ -46,13 +47,31 @@ class MusicPlayer(context: Context) {
                         }
                     }
                 })
+                
+                onPlayerReady?.invoke()
             }
         }, MoreExecutors.directExecutor())
     }
 
-    fun play(song: Song) {
+    fun play(song: Song, position: Long = 0L) {
         val player = controller ?: return
         
+        prepareInternal(song)
+        if (position > 0) {
+            player.seekTo(position)
+        }
+        player.play()
+    }
+
+    fun prepare(song: Song, position: Long = 0L) {
+        val player = controller ?: return
+        prepareInternal(song)
+        player.seekTo(position)
+        player.pause()
+    }
+
+    private fun prepareInternal(song: Song) {
+        val player = controller ?: return
         val metadata = MediaMetadata.Builder()
             .setTitle(song.name)
             .setArtist(song.artist)
@@ -71,7 +90,6 @@ class MusicPlayer(context: Context) {
 
         player.setMediaItem(mediaItem)
         player.prepare()
-        player.play()
     }
 
     fun togglePlayback() {

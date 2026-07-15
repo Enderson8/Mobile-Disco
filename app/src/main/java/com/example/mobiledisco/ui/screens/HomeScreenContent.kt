@@ -59,6 +59,8 @@ fun HomeScreenContent(
     val biblioteca by viewModel.biblioteca.collectAsState()
     val currentPosition by viewModel.currentPosition.collectAsState()
     val duration by viewModel.duration.collectAsState()
+    val isShuffleEnabled by viewModel.isShuffleEnabled.collectAsState()
+    val repeatMode by viewModel.repeatMode.collectAsState()
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -137,7 +139,9 @@ fun HomeScreenContent(
                         musica = musicaSelecionada,
                         currentPosition = currentPosition,
                         duration = duration,
-                        playbackStatus = if (isPlaying) PlaybackStatus.PLAYING else PlaybackStatus.STOPPED
+                        playbackStatus = if (isPlaying) PlaybackStatus.PLAYING else PlaybackStatus.STOPPED,
+                        isShuffleEnabled = isShuffleEnabled,
+                        repeatMode = repeatMode
                     )
 
                     PlayerPanel(

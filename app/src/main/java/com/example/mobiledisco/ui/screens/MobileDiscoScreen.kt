@@ -27,6 +27,8 @@ fun MobileDiscoScreen(
     val musicaSelecionada by viewModel.musicaSelecionada.collectAsState()
     val currentPosition by viewModel.currentPosition.collectAsState()
     val duration by viewModel.duration.collectAsState()
+    val isShuffleEnabled by viewModel.isShuffleEnabled.collectAsState()
+    val repeatMode by viewModel.repeatMode.collectAsState()
 
     Crossfade(targetState = navigation.currentScreen, label = "screenTransition") { screen ->
         when (screen) {
@@ -45,7 +47,9 @@ fun MobileDiscoScreen(
                         musica = musicaSelecionada,
                         currentPosition = currentPosition,
                         duration = duration,
-                        playbackStatus = if (isPlaying) PlaybackStatus.PLAYING else PlaybackStatus.STOPPED
+                        playbackStatus = if (isPlaying) PlaybackStatus.PLAYING else PlaybackStatus.STOPPED,
+                        isShuffleEnabled = isShuffleEnabled,
+                        repeatMode = repeatMode
                     ),
                     onEvent = { event -> viewModel.handlePlayerEvent(event) }
                 )

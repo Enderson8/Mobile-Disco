@@ -6,5 +6,7 @@ data class PlayerUiState(
     val musica: Song? = null,
     val currentPosition: Long = 0L,
     val duration: Long = 0L,
-    val playbackStatus: PlaybackStatus = PlaybackStatus.STOPPED
+    val playbackStatus: PlaybackStatus = PlaybackStatus.STOPPED,
+    val isShuffleEnabled: Boolean = false,
+    val repeatMode: RepeatMode = RepeatMode.NONE
 )
