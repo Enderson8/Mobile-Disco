@@ -4,6 +4,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import androidx.media3.common.C
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -26,6 +27,7 @@ class MusicPlayer(context: Context) {
 
     var onSongFinished: (() -> Unit)? = null
     var onPlayerReady: (() -> Unit)? = null
+    var onMediaItemTransition: ((String) -> Unit)? = null
 
     init {
         val sessionToken = SessionToken(context, ComponentName(context, PlaybackService::class.java))
@@ -46,6 +48,12 @@ class MusicPlayer(context: Context) {
                             onSongFinished?.invoke()
                         }
                     }
+
+                    override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                        mediaItem?.mediaId?.let { uri ->
+                            onMediaItemTransition?.invoke(uri)
+                        }
+                    }
                 })
                 
                 onPlayerReady?.invoke()
@@ -56,22 +64,40 @@ class MusicPlayer(context: Context) {
     fun play(song: Song, position: Long = 0L) {
         val player = controller ?: return
         
-        prepareInternal(song)
-        if (position > 0) {
-            player.seekTo(position)
+        // Se a música já é a atual, apenas dá play
+        if (player.currentMediaItem?.mediaId == song.uri) {
+            if (position > 0) player.seekTo(position)
+            player.play()
+            return
         }
+
+        // Caso contrário, tenta encontrar na fila atual
+        for (i in 0 until player.mediaItemCount) {
+            if (player.getMediaItemAt(i).mediaId == song.uri) {
+                player.seekTo(i, position)
+                player.play()
+                return
+            }
+        }
+
+        // Se não estiver na fila, carrega como item único (fallback)
+        val mediaItem = createMediaItem(song)
+        player.setMediaItem(mediaItem)
+        if (position > 0) player.seekTo(position)
+        player.prepare()
         player.play()
     }
 
-    fun prepare(song: Song, position: Long = 0L) {
+    fun updateQueue(songs: List<Song>, currentIndex: Int) {
         val player = controller ?: return
-        prepareInternal(song)
-        player.seekTo(position)
-        player.pause()
+        
+        val mediaItems = songs.map { createMediaItem(it) }
+
+        player.setMediaItems(mediaItems, currentIndex, C.TIME_UNSET)
+        player.prepare()
     }
 
-    private fun prepareInternal(song: Song) {
-        val player = controller ?: return
+    private fun createMediaItem(song: Song): MediaItem {
         val metadata = MediaMetadata.Builder()
             .setTitle(song.name)
             .setArtist(song.artist)
@@ -83,13 +109,30 @@ class MusicPlayer(context: Context) {
             }
             .build()
 
-        val mediaItem = MediaItem.Builder()
+        return MediaItem.Builder()
             .setUri(Uri.parse(song.uri))
+            .setMediaId(song.uri)
             .setMediaMetadata(metadata)
             .build()
+    }
 
+    fun prepare(song: Song, position: Long = 0L) {
+        val player = controller ?: return
+        
+        // Verifica se já está na fila
+        for (i in 0 until player.mediaItemCount) {
+            if (player.getMediaItemAt(i).mediaId == song.uri) {
+                player.seekTo(i, position)
+                player.pause()
+                return
+            }
+        }
+
+        val mediaItem = createMediaItem(song)
         player.setMediaItem(mediaItem)
+        player.seekTo(position)
         player.prepare()
+        player.pause()
     }
 
     fun togglePlayback() {
@@ -111,6 +154,14 @@ class MusicPlayer(context: Context) {
 
     fun seekTo(position: Long) {
         controller?.seekTo(position)
+    }
+
+    fun next() {
+        controller?.seekToNext()
+    }
+
+    fun previous() {
+        controller?.seekToPrevious()
     }
 
     fun getCurrentPosition(): Long = controller?.currentPosition ?: 0L

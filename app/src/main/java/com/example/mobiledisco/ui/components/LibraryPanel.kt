@@ -8,6 +8,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -36,6 +37,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -62,12 +64,14 @@ fun LibraryPanel(
     songs: List<Song>,
     playlists: List<Playlist>,
     selectedSongId: Long?,
+    isEditingPlaylist: Long? = null,
     onSongClick: (Song) -> Unit,
     onPlaylistClick: (Playlist) -> Unit,
     onCriarPlaylist: (String) -> Unit,
     onRenomearPlaylist: (Long, String) -> Unit,
     onRemoverPlaylist: (Long) -> Unit,
     onAddSongToPlaylist: (Long, Song) -> Boolean,
+    onConcluirEdicao: () -> Unit,
     onShowSnackbar: (String) -> Unit
 ) {
     var searchText by remember { mutableStateOf("") }
@@ -109,6 +113,39 @@ fun LibraryPanel(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // --- CABEÇALHO DE EDIÇÃO (Modo F3.6) ---
+        if (isEditingPlaylist != null) {
+            Surface(
+                color = HiFiColors.DarkPanel,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(HiFiDimensions.Medium),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Selecione músicas para adicionar",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = HiFiColors.Sand
+                    )
+                    Button(
+                        onClick = onConcluirEdicao,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = HiFiColors.Copper,
+                            contentColor = HiFiColors.Ivory
+                        ),
+                        shape = RoundedCornerShape(HiFiDimensions.Small)
+                    ) {
+                        Text("CONCLUIR")
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(HiFiDimensions.Medium))
+        }
+
         // --- SEÇÃO PLAYLISTS ---
         Text(
             text = "PLAYLISTS",

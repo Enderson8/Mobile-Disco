@@ -36,7 +36,8 @@ fun MobileDiscoScreen(
                 HomeScreenContent(
                     viewModel = viewModel,
                     onCoverClick = { navigation.openNowPlaying() },
-                    onPlaylistClick = { playlist -> navigation.openPlaylist(playlist.id) }
+                    onPlaylistClick = { playlist -> navigation.openPlaylist(playlist.id) },
+                    onNavigateToPlaylist = { id -> navigation.openPlaylist(id) }
                 )
             }
             AppScreen.NOW_PLAYING -> {
@@ -57,14 +58,22 @@ fun MobileDiscoScreen(
             }
             AppScreen.PLAYLIST -> {
                 val playlists by viewModel.playlists.collectAsState()
+                val isEditingPlaylist by viewModel.isEditingPlaylist.collectAsState()
                 val currentPlaylist = playlists.find { it.id == navigation.selectedPlaylistId }
                 
+                if (isEditingPlaylist != null) {
+                    navigation.openLibrary()
+                }
+
                 if (currentPlaylist != null) {
                     PlaylistScreen(
                         playlist = currentPlaylist,
                         selectedSongId = musicaSelecionada?.id,
                         onSongClick = { playlist, song -> viewModel.selecionarMusicaDaPlaylist(playlist, song) },
                         onRemoveSong = { song -> viewModel.removerMusicaDaPlaylist(currentPlaylist.id, song) },
+                        onAddSongsClick = {
+                            viewModel.iniciarEdicaoPlaylist(currentPlaylist.id)
+                        },
                         onBack = { navigation.openLibrary() }
                     )
                 } else {

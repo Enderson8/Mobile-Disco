@@ -44,6 +44,9 @@ class MusicViewModel(
     private val _playlists = MutableStateFlow<List<Playlist>>(emptyList())
     val playlists = _playlists.asStateFlow()
 
+    private val _isEditingPlaylist = MutableStateFlow<Long?>(null)
+    val isEditingPlaylist = _isEditingPlaylist.asStateFlow()
+
     private val _currentPosition = MutableStateFlow(0L)
     val currentPosition = _currentPosition.asStateFlow()
 
@@ -68,7 +71,23 @@ class MusicViewModel(
         atualizarMetadadosEmSegundoPlano(application)
         
         player.onSongFinished = {
+            // Se usarmos a fila interna do player, o STATE_ENDED só acontece no fim da fila
+            // ou se o modo de repetição for NONE.
             handleAutoNext()
+        }
+
+        player.onMediaItemTransition = { uri ->
+            Log.d("MobileDisco", "Transição de mídia detectada: $uri")
+            // Sincroniza o ViewModel quando a música muda pelo sistema (ex: tela bloqueada)
+            val musica = _filaReproducao.value.find { it.uri == uri }
+            if (musica != null && _musicaSelecionada.value?.uri != uri) {
+                _musicaSelecionada.value = musica
+                indexNaFila = _filaReproducao.value.indexOf(musica).coerceAtLeast(0)
+                prefs.edit()
+                    .putString("SESSION_LAST_URI", uri)
+                    .putLong("SESSION_LAST_POS", 0L)
+                    .apply()
+            }
         }
 
         player.onPlayerReady = {
@@ -188,6 +207,8 @@ class MusicViewModel(
                 .apply()
 
             configurarFila(song)
+            // Sincroniza a nova fila com o player para controle via MediaSession
+            player.updateQueue(_filaReproducao.value, indexNaFila)
             player.play(song)
         } else {
             _filaReproducao.value = emptyList()
@@ -274,8 +295,14 @@ class MusicViewModel(
         when (event) {
             PlayerEvent.PlayPause -> _musicaSelecionada.value?.let { toggle() }
             PlayerEvent.Stop -> stop()
-            PlayerEvent.Next -> proximaMusica()
-            PlayerEvent.Previous -> anteriorMusica()
+            PlayerEvent.Next -> {
+                // Tenta usar a navegação do sistema primeiro
+                player.next()
+            }
+            PlayerEvent.Previous -> {
+                // Tenta usar a navegação do sistema primeiro
+                player.previous()
+            }
             is PlayerEvent.Seek -> {
                 player.seekTo(event.position)
                 _currentPosition.value = event.position
@@ -345,6 +372,14 @@ class MusicViewModel(
 
     // --- Lógica de Playlists ---
 
+    fun iniciarEdicaoPlaylist(playlistId: Long) {
+        _isEditingPlaylist.value = playlistId
+    }
+
+    fun concluirEdicaoPlaylist() {
+        _isEditingPlaylist.value = null
+    }
+
     fun selecionarMusicaDaPlaylist(playlist: Playlist, song: Song) {
         _musicaSelecionada.value = song
         
@@ -358,6 +393,9 @@ class MusicViewModel(
         filaOriginal = playlist.songs
         
         atualizarFilaVisual(song)
+        
+        // Sincroniza a fila da playlist com o player
+        player.updateQueue(_filaReproducao.value, indexNaFila)
         player.play(song)
     }
 

@@ -55,6 +55,7 @@ fun HomeScreenContent(
     viewModel: MusicViewModel,
     onCoverClick: () -> Unit,
     onPlaylistClick: (Playlist) -> Unit,
+    onNavigateToPlaylist: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -69,6 +70,7 @@ fun HomeScreenContent(
     val duration by viewModel.duration.collectAsState()
     val isShuffleEnabled by viewModel.isShuffleEnabled.collectAsState()
     val repeatMode by viewModel.repeatMode.collectAsState()
+    val isEditingPlaylist by viewModel.isEditingPlaylist.collectAsState()
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -221,21 +223,38 @@ fun HomeScreenContent(
                 Spacer(modifier = Modifier.height(HiFiDimensions.Large))
 
                 LibraryPanel(
-                    songs = biblioteca,
-                    playlists = playlists,
-                    selectedSongId = musicaSelecionada?.id,
-                    onSongClick = viewModel::selecionarMusica,
-                    onPlaylistClick = onPlaylistClick,
-                    onCriarPlaylist = viewModel::criarPlaylist,
-                    onRenomearPlaylist = viewModel::renomearPlaylist,
-                    onRemoverPlaylist = viewModel::removerPlaylist,
-                    onAddSongToPlaylist = viewModel::adicionarMusicaNaPlaylist,
-                    onShowSnackbar = { message ->
-                        scope.launch {
-                            snackbarHostState.showSnackbar(message)
+                songs = biblioteca,
+                playlists = playlists,
+                selectedSongId = musicaSelecionada?.id,
+                isEditingPlaylist = isEditingPlaylist,
+                onSongClick = { song ->
+                    if (isEditingPlaylist != null) {
+                        val added = viewModel.adicionarMusicaNaPlaylist(isEditingPlaylist!!, song)
+                        if (added) {
+                            scope.launch { snackbarHostState.showSnackbar("Música adicionada.") }
+                        } else {
+                            scope.launch { snackbarHostState.showSnackbar("Essa música já está na playlist.") }
                         }
+                    } else {
+                        viewModel.selecionarMusica(song)
                     }
-                )
+                },
+                onPlaylistClick = onPlaylistClick,
+                onCriarPlaylist = viewModel::criarPlaylist,
+                onRenomearPlaylist = viewModel::renomearPlaylist,
+                onRemoverPlaylist = viewModel::removerPlaylist,
+                onAddSongToPlaylist = viewModel::adicionarMusicaNaPlaylist,
+                                onConcluirEdicao = { 
+                    val id = isEditingPlaylist
+                    viewModel.concluirEdicaoPlaylist()
+                    if (id != null) onNavigateToPlaylist(id)
+                },
+                onShowSnackbar = { message ->
+                    scope.launch {
+                        snackbarHostState.showSnackbar(message)
+                    }
+                }
+            )
             }
         }
     }
