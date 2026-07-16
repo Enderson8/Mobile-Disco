@@ -6,16 +6,26 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.PlaylistPlay
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -27,6 +37,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,25 +45,47 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.mobiledisco.data.Playlist
 import com.example.mobiledisco.data.Song
 import com.example.mobiledisco.data.toAlbums
 import com.example.mobiledisco.ui.state.SortOption
 import com.example.mobiledisco.ui.theme.HiFiColors
 import com.example.mobiledisco.ui.theme.HiFiDimensions
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun LibraryPanel(
     songs: List<Song>,
+    playlists: List<Playlist>,
     selectedSongId: Long?,
-    onSongClick: (Song) -> Unit
+    onSongClick: (Song) -> Unit,
+    onPlaylistClick: (Playlist) -> Unit,
+    onCriarPlaylist: (String) -> Unit,
+    onRenomearPlaylist: (Long, String) -> Unit,
+    onRemoverPlaylist: (Long) -> Unit,
+    onAddSongToPlaylist: (Long, Song) -> Boolean,
+    onShowSnackbar: (String) -> Unit
 ) {
     var searchText by remember { mutableStateOf("") }
     var sortOption by remember { mutableStateOf(SortOption.NAME) }
     var expanded by remember { mutableStateOf(false) }
+    var showCreateDialog by remember { mutableStateOf(false) }
+    var newPlaylistName by remember { mutableStateOf("") }
+    
+    var showAddToPlaylistDialog by remember { mutableStateOf(false) }
+    var selectedSongToPlaylist by remember { mutableStateOf<Song?>(null) }
+
+    var showManagePlaylistDialog by remember { mutableStateOf(false) }
+    var selectedPlaylistToManage by remember { mutableStateOf<Playlist?>(null) }
+    
+    var showRenameDialog by remember { mutableStateOf(false) }
+    var renamedPlaylistName by remember { mutableStateOf("") }
+    
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     
     // Estado para controlar quais álbuns estão expandidos (pelo nome + artista)
     var expandedAlbums by remember { mutableStateOf(setOf<String>()) }
@@ -76,7 +109,131 @@ fun LibraryPanel(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // 1. Cabeçalho (Estilo label Hi-Fi)
+        // --- SEÇÃO PLAYLISTS ---
+        Text(
+            text = "PLAYLISTS",
+            style = MaterialTheme.typography.labelSmall,
+            color = HiFiColors.Sand,
+            letterSpacing = 2.sp,
+            modifier = Modifier.padding(top = HiFiDimensions.Large)
+        )
+
+        Spacer(modifier = Modifier.height(HiFiDimensions.Medium))
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = HiFiDimensions.Medium)
+        ) {
+            playlists.forEach { playlist ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .combinedClickable(
+                            onClick = { onPlaylistClick(playlist) },
+                            onLongClick = {
+                                selectedPlaylistToManage = playlist
+                                showManagePlaylistDialog = true
+                            }
+                        )
+                        .padding(vertical = HiFiDimensions.Small),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlaylistPlay,
+                        contentDescription = null,
+                        tint = HiFiColors.Copper,
+                        modifier = Modifier.padding(end = HiFiDimensions.Medium)
+                    )
+                    Column {
+                        Text(
+                            text = playlist.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = HiFiColors.Ivory
+                        )
+                        Text(
+                            text = "${playlist.songs.size} músicas",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = HiFiColors.Sand
+                        )
+                    }
+                }
+                HorizontalDivider(thickness = HiFiDimensions.BorderWidth, color = HiFiColors.Divider)
+            }
+
+            Spacer(modifier = Modifier.height(HiFiDimensions.Medium))
+
+            Button(
+                onClick = { showCreateDialog = true },
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = HiFiColors.Walnut700,
+                    contentColor = HiFiColors.Ivory
+                ),
+                shape = RoundedCornerShape(HiFiDimensions.Small)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(HiFiDimensions.Small))
+                Text("NOVA PLAYLIST", letterSpacing = 1.sp)
+            }
+        }
+
+        if (showCreateDialog) {
+            AlertDialog(
+                onDismissRequest = { 
+                    showCreateDialog = false
+                    newPlaylistName = ""
+                },
+                containerColor = HiFiColors.Espresso,
+                title = { 
+                    Text("Nova Playlist", color = HiFiColors.Ivory) 
+                },
+                text = {
+                    OutlinedTextField(
+                        value = newPlaylistName,
+                        onValueChange = { newPlaylistName = it },
+                        label = { Text("Nome da playlist", color = HiFiColors.Sand) },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = HiFiColors.Ivory,
+                            unfocusedTextColor = HiFiColors.Ivory,
+                            cursorColor = HiFiColors.Copper,
+                            focusedBorderColor = HiFiColors.Copper,
+                            unfocusedBorderColor = HiFiColors.CopperDark
+                        )
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            if (newPlaylistName.isNotBlank()) {
+                                onCriarPlaylist(newPlaylistName)
+                                showCreateDialog = false
+                                newPlaylistName = ""
+                            }
+                        }
+                    ) {
+                        Text("Criar", color = HiFiColors.Copper)
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { 
+                            showCreateDialog = false
+                            newPlaylistName = ""
+                        }
+                    ) {
+                        Text("Cancelar", color = HiFiColors.Sand)
+                    }
+                }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(HiFiDimensions.ExtraLarge))
+        HorizontalDivider(thickness = HiFiDimensions.BorderWidth, color = HiFiColors.Divider)
+        Spacer(modifier = Modifier.height(HiFiDimensions.Large))
+
+        // --- SEÇÃO ÁLBUNS (BIBLIOTECA ORIGINAL) ---
         Text(
             text = "MUSIC LIBRARY",
             style = MaterialTheme.typography.labelSmall,
@@ -270,6 +427,10 @@ fun LibraryPanel(
                                     isSelected = selectedSongId == song.id,
                                     onClick = {
                                         onSongClick(song)
+                                    },
+                                    onLongClick = {
+                                        selectedSongToPlaylist = song
+                                        showAddToPlaylistDialog = true
                                     }
                                 )
                             }
@@ -284,6 +445,189 @@ fun LibraryPanel(
                     }
                 }
             }
+        }
+
+        if (showAddToPlaylistDialog && selectedSongToPlaylist != null) {
+            AlertDialog(
+                onDismissRequest = { 
+                    showAddToPlaylistDialog = false
+                    selectedSongToPlaylist = null
+                },
+                containerColor = HiFiColors.Espresso,
+                title = { 
+                    Text("Adicionar à Playlist", color = HiFiColors.Ivory) 
+                },
+                text = {
+                    Column {
+                        if (playlists.isEmpty()) {
+                            Text("Nenhuma playlist criada.", color = HiFiColors.Sand)
+                        } else {
+                            playlists.forEach { playlist ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            val added = onAddSongToPlaylist(playlist.id, selectedSongToPlaylist!!)
+                                            if (added) {
+                                                onShowSnackbar("Música adicionada à playlist.")
+                                            } else {
+                                                onShowSnackbar("Essa música já está na playlist.")
+                                            }
+                                            showAddToPlaylistDialog = false
+                                            selectedSongToPlaylist = null
+                                        }
+                                        .padding(vertical = HiFiDimensions.Small),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.PlaylistPlay,
+                                        contentDescription = null,
+                                        tint = HiFiColors.Copper,
+                                        modifier = Modifier.padding(end = HiFiDimensions.Medium)
+                                    )
+                                    Column {
+                                        Text(
+                                            text = playlist.name,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = HiFiColors.Ivory
+                                        )
+                                        Text(
+                                            text = "${playlist.songs.size} músicas",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = HiFiColors.Sand
+                                        )
+                                    }
+                                }
+                                HorizontalDivider(thickness = 0.5.dp, color = HiFiColors.Divider)
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { 
+                        showAddToPlaylistDialog = false
+                        selectedSongToPlaylist = null
+                    }) {
+                        Text("Fechar", color = HiFiColors.Sand)
+                    }
+                }
+            )
+        }
+
+        if (showManagePlaylistDialog && selectedPlaylistToManage != null) {
+            AlertDialog(
+                onDismissRequest = { 
+                    showManagePlaylistDialog = false
+                    selectedPlaylistToManage = null
+                },
+                containerColor = HiFiColors.Espresso,
+                title = { Text("Gerenciar Playlist", color = HiFiColors.Ivory) },
+                text = {
+                    Column {
+                        TextButton(
+                            onClick = {
+                                renamedPlaylistName = selectedPlaylistToManage?.name ?: ""
+                                showRenameDialog = true
+                                showManagePlaylistDialog = false
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Renomear Playlist", color = HiFiColors.Ivory, textAlign = TextAlign.Start, modifier = Modifier.fillMaxWidth())
+                        }
+                        TextButton(
+                            onClick = {
+                                showDeleteConfirmDialog = true
+                                showManagePlaylistDialog = false
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Excluir Playlist", color = Color.Red, textAlign = TextAlign.Start, modifier = Modifier.fillMaxWidth())
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { 
+                        showManagePlaylistDialog = false
+                        selectedPlaylistToManage = null
+                    }) {
+                        Text("Cancelar", color = HiFiColors.Sand)
+                    }
+                }
+            )
+        }
+
+        if (showRenameDialog && selectedPlaylistToManage != null) {
+            AlertDialog(
+                onDismissRequest = { 
+                    showRenameDialog = false
+                    selectedPlaylistToManage = null
+                },
+                containerColor = HiFiColors.Espresso,
+                title = { Text("Renomear Playlist", color = HiFiColors.Ivory) },
+                text = {
+                    OutlinedTextField(
+                        value = renamedPlaylistName,
+                        onValueChange = { renamedPlaylistName = it },
+                        label = { Text("Novo nome", color = HiFiColors.Sand) },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = HiFiColors.Ivory,
+                            unfocusedTextColor = HiFiColors.Ivory,
+                            cursorColor = HiFiColors.Copper,
+                            focusedBorderColor = HiFiColors.Copper,
+                            unfocusedBorderColor = HiFiColors.CopperDark
+                        )
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        if (renamedPlaylistName.isNotBlank()) {
+                            onRenomearPlaylist(selectedPlaylistToManage!!.id, renamedPlaylistName)
+                            showRenameDialog = false
+                            selectedPlaylistToManage = null
+                        }
+                    }) {
+                        Text("Salvar", color = HiFiColors.Copper)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        showRenameDialog = false
+                        selectedPlaylistToManage = null
+                    }) {
+                        Text("Cancelar", color = HiFiColors.Sand)
+                    }
+                }
+            )
+        }
+
+        if (showDeleteConfirmDialog && selectedPlaylistToManage != null) {
+            AlertDialog(
+                onDismissRequest = { 
+                    showDeleteConfirmDialog = false
+                    selectedPlaylistToManage = null
+                },
+                containerColor = HiFiColors.Espresso,
+                title = { Text("Excluir Playlist", color = HiFiColors.Ivory) },
+                text = { Text("Tem certeza que deseja excluir a playlist \"${selectedPlaylistToManage?.name}\"?", color = HiFiColors.Sand) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        onRemoverPlaylist(selectedPlaylistToManage!!.id)
+                        showDeleteConfirmDialog = false
+                        selectedPlaylistToManage = null
+                    }) {
+                        Text("Excluir", color = Color.Red)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        showDeleteConfirmDialog = false
+                        selectedPlaylistToManage = null
+                    }) {
+                        Text("Cancelar", color = HiFiColors.Sand)
+                    }
+                }
+            )
         }
     }
 }

@@ -2,8 +2,9 @@ package com.example.mobiledisco.ui.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,11 +27,13 @@ import com.example.mobiledisco.data.Song
 import com.example.mobiledisco.ui.theme.HiFiColors
 import com.example.mobiledisco.ui.theme.HiFiDimensions
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SongListItem(
     song: Song,
     isSelected: Boolean,
     onClick: () -> Unit,
+    onLongClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val backgroundColor by animateColorAsState(
@@ -49,7 +52,10 @@ fun SongListItem(
         modifier = modifier
             .fillMaxWidth()
             .background(backgroundColor)
-            .clickable { onClick() }
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            )
     ) {
         Row(
             modifier = Modifier

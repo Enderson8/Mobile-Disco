@@ -7,6 +7,8 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mobiledisco.data.MusicMetadata
+import com.example.mobiledisco.data.Playlist
+import com.example.mobiledisco.data.PlaylistRepository
 import com.example.mobiledisco.data.Song
 import com.example.mobiledisco.player.MusicPlayer
 import com.example.mobiledisco.player.PlayerEvent
@@ -23,6 +25,7 @@ class MusicViewModel(
 ) : AndroidViewModel(application) {
 
     val player = MusicPlayer(application)
+    private val playlistRepository = PlaylistRepository(application)
 
     private val prefs = application.getSharedPreferences(
         "mobile_disco_v3",
@@ -37,6 +40,9 @@ class MusicViewModel(
 
     private val _filaReproducao = MutableStateFlow(listOf<Song>())
     val filaReproducao = _filaReproducao.asStateFlow()
+
+    private val _playlists = MutableStateFlow<List<Playlist>>(emptyList())
+    val playlists = _playlists.asStateFlow()
 
     private val _currentPosition = MutableStateFlow(0L)
     val currentPosition = _currentPosition.asStateFlow()
@@ -58,6 +64,7 @@ class MusicViewModel(
     init {
         carregarConfiguracoes()
         carregarBiblioteca()
+        carregarPlaylists()
         atualizarMetadadosEmSegundoPlano(application)
         
         player.onSongFinished = {
@@ -334,6 +341,81 @@ class MusicViewModel(
             .putBoolean("SESSION_WAS_PLAYING", true)
             .apply()
         player.play(song)
+    }
+
+    // --- Lógica de Playlists ---
+
+    fun selecionarMusicaDaPlaylist(playlist: Playlist, song: Song) {
+        _musicaSelecionada.value = song
+        
+        // Salva a música atual na sessão e marca como tocando
+        prefs.edit()
+            .putString("SESSION_LAST_URI", song.uri)
+            .putBoolean("SESSION_WAS_PLAYING", true)
+            .apply()
+
+        // Monta a fila com TODAS as músicas da playlist na ordem atual
+        filaOriginal = playlist.songs
+        
+        atualizarFilaVisual(song)
+        player.play(song)
+    }
+
+    private fun carregarPlaylists() {
+        _playlists.value = playlistRepository.loadPlaylists(_biblioteca.value)
+    }
+
+    fun criarPlaylist(nome: String) {
+        val novaPlaylist = Playlist(
+            id = System.currentTimeMillis(),
+            name = nome
+        )
+        val novasPlaylists = (_playlists.value + novaPlaylist).sortedBy { it.name }
+        _playlists.value = novasPlaylists
+        playlistRepository.savePlaylists(novasPlaylists)
+    }
+
+    fun removerPlaylist(playlistId: Long) {
+        val novasPlaylists = _playlists.value.filter { it.id != playlistId }
+        _playlists.value = novasPlaylists
+        playlistRepository.savePlaylists(novasPlaylists)
+    }
+
+    fun renomearPlaylist(playlistId: Long, novoNome: String) {
+        val novasPlaylists = _playlists.value.map { playlist ->
+            if (playlist.id == playlistId) {
+                playlist.copy(name = novoNome)
+            } else playlist
+        }
+        _playlists.value = novasPlaylists
+        playlistRepository.savePlaylists(novasPlaylists)
+    }
+
+    fun adicionarMusicaNaPlaylist(playlistId: Long, song: Song): Boolean {
+        var added = false
+        val novasPlaylists = _playlists.value.map { playlist ->
+            if (playlist.id == playlistId) {
+                if (!playlist.songs.any { it.uri == song.uri }) {
+                    added = true
+                    playlist.copy(songs = playlist.songs + song)
+                } else playlist
+            } else playlist
+        }
+        if (added) {
+            _playlists.value = novasPlaylists
+            playlistRepository.savePlaylists(novasPlaylists)
+        }
+        return added
+    }
+
+    fun removerMusicaDaPlaylist(playlistId: Long, song: Song) {
+        val novasPlaylists = _playlists.value.map { playlist ->
+            if (playlist.id == playlistId) {
+                playlist.copy(songs = playlist.songs.filter { it.uri != song.uri })
+            } else playlist
+        }
+        _playlists.value = novasPlaylists
+        playlistRepository.savePlaylists(novasPlaylists)
     }
 
     override fun onCleared() {

@@ -17,11 +17,15 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,6 +33,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.example.mobiledisco.data.MusicMetadata
+import com.example.mobiledisco.data.Playlist
 import com.example.mobiledisco.data.Song
 import com.example.mobiledisco.data.toSong
 import com.example.mobiledisco.importer.MusicImporter
@@ -49,14 +54,17 @@ import kotlinx.coroutines.withContext
 fun HomeScreenContent(
     viewModel: MusicViewModel,
     onCoverClick: () -> Unit,
+    onPlaylistClick: (Playlist) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
     
     val isPlaying by viewModel.isPlaying.collectAsState()
     val musicaSelecionada by viewModel.musicaSelecionada.collectAsState()
     val biblioteca by viewModel.biblioteca.collectAsState()
+    val playlists by viewModel.playlists.collectAsState()
     val currentPosition by viewModel.currentPosition.collectAsState()
     val duration by viewModel.duration.collectAsState()
     val isShuffleEnabled by viewModel.isShuffleEnabled.collectAsState()
@@ -103,114 +111,133 @@ fun HomeScreenContent(
         viewModel.handlePlayerEvent(event)
     }
 
-    Surface(
-        modifier = modifier.fillMaxSize(),
-        color = HiFiColors.Walnut900
-    ) {
-        Column(
-            modifier = Modifier
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = HiFiColors.Walnut900
+    ) { padding ->
+        Surface(
+            modifier = modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(vertical = HiFiDimensions.Large),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top
+                .padding(padding),
+            color = HiFiColors.Walnut900
         ) {
-            // Título Principal Estilizado
-            Text(
-                text = "MOBILE DISCO",
-                style = MaterialTheme.typography.headlineSmall,
-                color = HiFiColors.Sand,
-                letterSpacing = 4.sp,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(HiFiDimensions.Large))
-
-            HiFiCard(
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = HiFiDimensions.Medium)
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(vertical = HiFiDimensions.Large),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Top
             ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                // Título Principal Estilizado
+                Text(
+                    text = "MOBILE DISCO",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = HiFiColors.Sand,
+                    letterSpacing = 4.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(HiFiDimensions.Large))
+
+                HiFiCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = HiFiDimensions.Medium)
                 ) {
-                    val uiState = PlayerUiState(
-                        musica = musicaSelecionada,
-                        currentPosition = currentPosition,
-                        duration = duration,
-                        playbackStatus = if (isPlaying) PlaybackStatus.PLAYING else PlaybackStatus.STOPPED,
-                        isShuffleEnabled = isShuffleEnabled,
-                        repeatMode = repeatMode
-                    )
-
-                    PlayerPanel(
-                        state = uiState,
-                        onEvent = onEvent,
-                        onCoverClick = onCoverClick
-                    )
-
-                    Spacer(modifier = Modifier.height(HiFiDimensions.ExtraLarge))
-
-                    // Botão Escolher Música
-                    Button(
-                        onClick = { launcher.launch(arrayOf("audio/*")) },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = HiFiColors.Copper,
-                            contentColor = HiFiColors.Ivory
-                        ),
-                        shape = RoundedCornerShape(HiFiDimensions.Small)
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("ESCOLHER MÚSICA", letterSpacing = 1.sp)
-                    }
+                        val uiState = PlayerUiState(
+                            musica = musicaSelecionada,
+                            currentPosition = currentPosition,
+                            duration = duration,
+                            playbackStatus = if (isPlaying) PlaybackStatus.PLAYING else PlaybackStatus.STOPPED,
+                            isShuffleEnabled = isShuffleEnabled,
+                            repeatMode = repeatMode
+                        )
 
-                    Spacer(modifier = Modifier.height(HiFiDimensions.Medium))
+                        PlayerPanel(
+                            state = uiState,
+                            onEvent = onEvent,
+                            onCoverClick = onCoverClick
+                        )
 
-                    // Botão Importar Álbum
-                    Button(
-                        onClick = { folderLauncher.launch(null) },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = HiFiColors.Copper,
-                            contentColor = HiFiColors.Ivory
-                        ),
-                        shape = RoundedCornerShape(HiFiDimensions.Small)
-                    ) {
-                        Text("IMPORTAR ÁLBUM", letterSpacing = 1.sp)
-                    }
+                        Spacer(modifier = Modifier.height(HiFiDimensions.ExtraLarge))
 
-                    Spacer(modifier = Modifier.height(HiFiDimensions.Medium))
+                        // Botão Escolher Música
+                        Button(
+                            onClick = { launcher.launch(arrayOf("audio/*")) },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = HiFiColors.Copper,
+                                contentColor = HiFiColors.Ivory
+                            ),
+                            shape = RoundedCornerShape(HiFiDimensions.Small)
+                        ) {
+                            Text("ESCOLHER MÚSICA", letterSpacing = 1.sp)
+                        }
 
-                    // Botão Limpar Biblioteca
-                    Button(
-                        onClick = {
-                            viewModel.limparBiblioteca()
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = HiFiColors.Walnut700,
-                            contentColor = HiFiColors.Sand
-                        ),
-                        shape = RoundedCornerShape(HiFiDimensions.Small)
-                    ) {
-                        Text("LIMPAR BIBLIOTECA", letterSpacing = 1.sp)
+                        Spacer(modifier = Modifier.height(HiFiDimensions.Medium))
+
+                        // Botão Importar Álbum
+                        Button(
+                            onClick = { folderLauncher.launch(null) },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = HiFiColors.Copper,
+                                contentColor = HiFiColors.Ivory
+                            ),
+                            shape = RoundedCornerShape(HiFiDimensions.Small)
+                        ) {
+                            Text("IMPORTAR ÁLBUM", letterSpacing = 1.sp)
+                        }
+
+                        Spacer(modifier = Modifier.height(HiFiDimensions.Medium))
+
+                        // Botão Limpar Biblioteca
+                        Button(
+                            onClick = {
+                                viewModel.limparBiblioteca()
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = HiFiColors.Walnut700,
+                                contentColor = HiFiColors.Sand
+                            ),
+                            shape = RoundedCornerShape(HiFiDimensions.Small)
+                        ) {
+                            Text("LIMPAR BIBLIOTECA", letterSpacing = 1.sp)
+                        }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(HiFiDimensions.ExtraLarge))
+
+                HorizontalDivider(
+                    thickness = HiFiDimensions.BorderWidth,
+                    color = HiFiColors.Divider,
+                    modifier = Modifier.padding(horizontal = HiFiDimensions.Large)
+                )
+
+                Spacer(modifier = Modifier.height(HiFiDimensions.Large))
+
+                LibraryPanel(
+                    songs = biblioteca,
+                    playlists = playlists,
+                    selectedSongId = musicaSelecionada?.id,
+                    onSongClick = viewModel::selecionarMusica,
+                    onPlaylistClick = onPlaylistClick,
+                    onCriarPlaylist = viewModel::criarPlaylist,
+                    onRenomearPlaylist = viewModel::renomearPlaylist,
+                    onRemoverPlaylist = viewModel::removerPlaylist,
+                    onAddSongToPlaylist = viewModel::adicionarMusicaNaPlaylist,
+                    onShowSnackbar = { message ->
+                        scope.launch {
+                            snackbarHostState.showSnackbar(message)
+                        }
+                    }
+                )
             }
-
-            Spacer(modifier = Modifier.height(HiFiDimensions.ExtraLarge))
-
-            HorizontalDivider(
-                thickness = HiFiDimensions.BorderWidth,
-                color = HiFiColors.Divider,
-                modifier = Modifier.padding(horizontal = HiFiDimensions.Large)
-            )
-
-            Spacer(modifier = Modifier.height(HiFiDimensions.Large))
-
-            LibraryPanel(
-                songs = biblioteca,
-                selectedSongId = musicaSelecionada?.id,
-                onSongClick = viewModel::selecionarMusica
-            )
         }
     }
 }
+
