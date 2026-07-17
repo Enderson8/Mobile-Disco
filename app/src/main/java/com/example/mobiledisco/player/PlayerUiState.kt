@@ -8,5 +8,6 @@ data class PlayerUiState(
     val duration: Long = 0L,
     val playbackStatus: PlaybackStatus = PlaybackStatus.STOPPED,
     val isShuffleEnabled: Boolean = false,
-    val repeatMode: RepeatMode = RepeatMode.NONE
+    val repeatMode: RepeatMode = RepeatMode.NONE,
+    val isFavorite: Boolean = false
 )

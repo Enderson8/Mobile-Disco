@@ -44,6 +44,9 @@ class MusicViewModel(
     private val _playlists = MutableStateFlow<List<Playlist>>(emptyList())
     val playlists = _playlists.asStateFlow()
 
+    private val _favoritos = MutableStateFlow<Set<String>>(emptySet())
+    val favoritos = _favoritos.asStateFlow()
+
     private val _isEditingPlaylist = MutableStateFlow<Long?>(null)
     val isEditingPlaylist = _isEditingPlaylist.asStateFlow()
 
@@ -68,17 +71,15 @@ class MusicViewModel(
         carregarConfiguracoes()
         carregarBiblioteca()
         carregarPlaylists()
+        carregarFavoritos()
         atualizarMetadadosEmSegundoPlano(application)
         
         player.onSongFinished = {
-            // Se usarmos a fila interna do player, o STATE_ENDED só acontece no fim da fila
-            // ou se o modo de repetição for NONE.
             handleAutoNext()
         }
 
         player.onMediaItemTransition = { uri ->
             Log.d("MobileDisco", "Transição de mídia detectada: $uri")
-            // Sincroniza o ViewModel quando a música muda pelo sistema (ex: tela bloqueada)
             val musica = _filaReproducao.value.find { it.uri == uri }
             if (musica != null && _musicaSelecionada.value?.uri != uri) {
                 _musicaSelecionada.value = musica
@@ -121,6 +122,10 @@ class MusicViewModel(
         _repeatMode.value = RepeatMode.values()[repeatOrdinal]
     }
 
+    private fun carregarFavoritos() {
+        _favoritos.value = prefs.getStringSet("SETTINGS_FAVORITOS", emptySet()) ?: emptySet()
+    }
+
     private fun restaurarUltimaSessao() {
         val lastUri = prefs.getString("SESSION_LAST_URI", null)
         val lastPos = prefs.getLong("SESSION_LAST_POS", 0L)
@@ -147,6 +152,7 @@ class MusicViewModel(
         val musicasSalvas = prefs.all
         _biblioteca.value = musicasSalvas.mapNotNull { item ->
             try {
+                if (item.key.startsWith("SESSION_") || item.key.startsWith("SETTINGS_")) return@mapNotNull null
                 val data = item.value.toString().split(":::")
                 if (data.size >= 5) {
                     Song(
@@ -207,7 +213,6 @@ class MusicViewModel(
                 .apply()
 
             configurarFila(song)
-            // Sincroniza a nova fila com o player para controle via MediaSession
             player.updateQueue(_filaReproducao.value, indexNaFila)
             player.play(song)
         } else {
@@ -295,20 +300,15 @@ class MusicViewModel(
         when (event) {
             PlayerEvent.PlayPause -> _musicaSelecionada.value?.let { toggle() }
             PlayerEvent.Stop -> stop()
-            PlayerEvent.Next -> {
-                // Tenta usar a navegação do sistema primeiro
-                player.next()
-            }
-            PlayerEvent.Previous -> {
-                // Tenta usar a navegação do sistema primeiro
-                player.previous()
-            }
+            PlayerEvent.Next -> player.next()
+            PlayerEvent.Previous -> player.previous()
             is PlayerEvent.Seek -> {
                 player.seekTo(event.position)
                 _currentPosition.value = event.position
             }
             PlayerEvent.ToggleShuffle -> toggleShuffle()
             PlayerEvent.ToggleRepeat -> toggleRepeat()
+            is PlayerEvent.ToggleFavorite -> toggleFavorito(event.song)
         }
     }
 
@@ -324,6 +324,17 @@ class MusicViewModel(
         val nextMode = modes[(_repeatMode.value.ordinal + 1) % modes.size]
         _repeatMode.value = nextMode
         prefs.edit().putInt("SETTINGS_REPEAT", nextMode.ordinal).apply()
+    }
+
+    private fun toggleFavorito(song: Song) {
+        val current = _favoritos.value.toMutableSet()
+        if (current.contains(song.uri)) {
+            current.remove(song.uri)
+        } else {
+            current.add(song.uri)
+        }
+        _favoritos.value = current
+        prefs.edit().putStringSet("SETTINGS_FAVORITOS", current).apply()
     }
 
     private fun handleAutoNext() {
@@ -382,19 +393,12 @@ class MusicViewModel(
 
     fun selecionarMusicaDaPlaylist(playlist: Playlist, song: Song) {
         _musicaSelecionada.value = song
-        
-        // Salva a música atual na sessão e marca como tocando
         prefs.edit()
             .putString("SESSION_LAST_URI", song.uri)
             .putBoolean("SESSION_WAS_PLAYING", true)
             .apply()
-
-        // Monta a fila com TODAS as músicas da playlist na ordem atual
         filaOriginal = playlist.songs
-        
         atualizarFilaVisual(song)
-        
-        // Sincroniza a fila da playlist com o player
         player.updateQueue(_filaReproducao.value, indexNaFila)
         player.play(song)
     }
@@ -404,10 +408,7 @@ class MusicViewModel(
     }
 
     fun criarPlaylist(nome: String) {
-        val novaPlaylist = Playlist(
-            id = System.currentTimeMillis(),
-            name = nome
-        )
+        val novaPlaylist = Playlist(id = System.currentTimeMillis(), name = nome)
         val novasPlaylists = (_playlists.value + novaPlaylist).sortedBy { it.name }
         _playlists.value = novasPlaylists
         playlistRepository.savePlaylists(novasPlaylists)
@@ -421,9 +422,7 @@ class MusicViewModel(
 
     fun renomearPlaylist(playlistId: Long, novoNome: String) {
         val novasPlaylists = _playlists.value.map { playlist ->
-            if (playlist.id == playlistId) {
-                playlist.copy(name = novoNome)
-            } else playlist
+            if (playlist.id == playlistId) playlist.copy(name = novoNome) else playlist
         }
         _playlists.value = novasPlaylists
         playlistRepository.savePlaylists(novasPlaylists)

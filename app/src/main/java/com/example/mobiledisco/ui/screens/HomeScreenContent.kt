@@ -42,10 +42,14 @@ import com.example.mobiledisco.player.PlayerEvent
 import com.example.mobiledisco.player.PlayerUiState
 import com.example.mobiledisco.ui.components.HiFiCard
 import com.example.mobiledisco.ui.components.LibraryPanel
+import com.example.mobiledisco.ui.components.MiniPlayer
 import com.example.mobiledisco.ui.components.PlayerPanel
 import com.example.mobiledisco.ui.theme.HiFiColors
 import com.example.mobiledisco.ui.theme.HiFiDimensions
 import com.example.mobiledisco.viewmodel.MusicViewModel
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -66,11 +70,22 @@ fun HomeScreenContent(
     val musicaSelecionada by viewModel.musicaSelecionada.collectAsState()
     val biblioteca by viewModel.biblioteca.collectAsState()
     val playlists by viewModel.playlists.collectAsState()
+    val favoritos by viewModel.favoritos.collectAsState()
     val currentPosition by viewModel.currentPosition.collectAsState()
     val duration by viewModel.duration.collectAsState()
     val isShuffleEnabled by viewModel.isShuffleEnabled.collectAsState()
     val repeatMode by viewModel.repeatMode.collectAsState()
     val isEditingPlaylist by viewModel.isEditingPlaylist.collectAsState()
+
+    val uiState = PlayerUiState(
+        musica = musicaSelecionada,
+        currentPosition = currentPosition,
+        duration = duration,
+        playbackStatus = if (isPlaying) PlaybackStatus.PLAYING else PlaybackStatus.STOPPED,
+        isShuffleEnabled = isShuffleEnabled,
+        repeatMode = repeatMode,
+        isFavorite = musicaSelecionada?.let { favoritos.contains(it.uri) } ?: false
+    )
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -115,7 +130,20 @@ fun HomeScreenContent(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = HiFiColors.Walnut900
+        containerColor = HiFiColors.Walnut900,
+        bottomBar = {
+            AnimatedVisibility(
+                visible = musicaSelecionada != null,
+                enter = slideInVertically(initialOffsetY = { it }),
+                exit = slideOutVertically(targetOffsetY = { it })
+            ) {
+                MiniPlayer(
+                    state = uiState,
+                    onEvent = onEvent,
+                    onClick = onCoverClick
+                )
+            }
+        }
     ) { padding ->
         Surface(
             modifier = modifier
@@ -151,15 +179,6 @@ fun HomeScreenContent(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        val uiState = PlayerUiState(
-                            musica = musicaSelecionada,
-                            currentPosition = currentPosition,
-                            duration = duration,
-                            playbackStatus = if (isPlaying) PlaybackStatus.PLAYING else PlaybackStatus.STOPPED,
-                            isShuffleEnabled = isShuffleEnabled,
-                            repeatMode = repeatMode
-                        )
-
                         PlayerPanel(
                             state = uiState,
                             onEvent = onEvent,
@@ -225,6 +244,7 @@ fun HomeScreenContent(
                 LibraryPanel(
                 songs = biblioteca,
                 playlists = playlists,
+                favorites = favoritos,
                 selectedSongId = musicaSelecionada?.id,
                 isEditingPlaylist = isEditingPlaylist,
                 onSongClick = { song ->

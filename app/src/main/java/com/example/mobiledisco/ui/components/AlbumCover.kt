@@ -1,17 +1,22 @@
 package com.example.mobiledisco.ui.components
 
 import android.graphics.BitmapFactory
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.clickable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
@@ -42,30 +47,40 @@ fun AlbumCover(
         label = "coverPulse"
     )
 
-    musica?.cover?.let { bytes ->
-        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-        
-        Box(
-            modifier = Modifier
-                .graphicsLayer(scaleX = scale, scaleY = scale) // Aplica a animação
-                .clickable { onClick() }
-                .shadow(
-                    elevation = 4.dp,
-                    shape = RoundedCornerShape(HiFiDimensions.Normal)
-                )
-                .border(
-                    BorderStroke(1.dp, HiFiColors.CopperDark),
-                    shape = RoundedCornerShape(HiFiDimensions.Normal)
-                )
-                .padding(4.dp)
-        ) {
-            Image(
-                bitmap = bitmap.asImageBitmap(),
-                contentDescription = "Capa do álbum",
+    AnimatedContent(
+        targetState = musica?.cover,
+        transitionSpec = {
+            fadeIn(animationSpec = tween(500)) togetherWith fadeOut(animationSpec = tween(500))
+        },
+        label = "coverAnimation"
+    ) { coverBytes ->
+        if (coverBytes != null) {
+            val bitmap = remember(coverBytes) {
+                BitmapFactory.decodeByteArray(coverBytes, 0, coverBytes.size)
+            } ?: return@AnimatedContent
+            
+            Box(
                 modifier = Modifier
-                    .size(HiFiDimensions.AlbumCoverSize)
-                    .clip(RoundedCornerShape(HiFiDimensions.Small))
-            )
+                    .graphicsLayer(scaleX = scale, scaleY = scale) // Aplica a animação
+                    .clickable { onClick() }
+                    .shadow(
+                        elevation = 4.dp,
+                        shape = RoundedCornerShape(HiFiDimensions.Normal)
+                    )
+                    .border(
+                        BorderStroke(1.dp, HiFiColors.CopperDark),
+                        shape = RoundedCornerShape(HiFiDimensions.Normal)
+                    )
+                    .padding(4.dp)
+            ) {
+                Image(
+                    bitmap = bitmap.asImageBitmap(),
+                    contentDescription = "Capa do álbum",
+                    modifier = Modifier
+                        .size(HiFiDimensions.AlbumCoverSize)
+                        .clip(RoundedCornerShape(HiFiDimensions.Small))
+                )
+            }
         }
     }
 }

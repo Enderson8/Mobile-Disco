@@ -8,4 +8,5 @@ sealed interface PlayerEvent {
     data class Seek(val position: Long) : PlayerEvent
     data object ToggleShuffle : PlayerEvent
     data object ToggleRepeat : PlayerEvent
+    data class ToggleFavorite(val song: com.example.mobiledisco.data.Song) : PlayerEvent
 }

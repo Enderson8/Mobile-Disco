@@ -27,6 +27,7 @@ fun MobileDiscoScreen(
     val musicaSelecionada by viewModel.musicaSelecionada.collectAsState()
     val currentPosition by viewModel.currentPosition.collectAsState()
     val duration by viewModel.duration.collectAsState()
+    val favoritos by viewModel.favoritos.collectAsState()
     val isShuffleEnabled by viewModel.isShuffleEnabled.collectAsState()
     val repeatMode by viewModel.repeatMode.collectAsState()
 
@@ -51,7 +52,8 @@ fun MobileDiscoScreen(
                         duration = duration,
                         playbackStatus = if (isPlaying) PlaybackStatus.PLAYING else PlaybackStatus.STOPPED,
                         isShuffleEnabled = isShuffleEnabled,
-                        repeatMode = repeatMode
+                        repeatMode = repeatMode,
+                        isFavorite = musicaSelecionada?.let { favoritos.contains(it.uri) } ?: false
                     ),
                     onEvent = { event -> viewModel.handlePlayerEvent(event) }
                 )

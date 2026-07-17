@@ -22,6 +22,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlaylistPlay
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
@@ -63,6 +65,7 @@ import com.example.mobiledisco.ui.theme.HiFiDimensions
 fun LibraryPanel(
     songs: List<Song>,
     playlists: List<Playlist>,
+    favorites: Set<String>, // Adicionado
     selectedSongId: Long?,
     isEditingPlaylist: Long? = null,
     onSongClick: (Song) -> Unit,
@@ -93,11 +96,18 @@ fun LibraryPanel(
     
     // Estado para controlar quais álbuns estão expandidos (pelo nome + artista)
     var expandedAlbums by remember { mutableStateOf(setOf<String>()) }
+    
+    // Estado para expandir seção de favoritos
+    var expandedFavorites by remember { mutableStateOf(false) }
 
     val filteredSongs = songs.filter {
         it.name.contains(searchText, ignoreCase = true) ||
                 it.artist.contains(searchText, ignoreCase = true) ||
                 it.album.contains(searchText, ignoreCase = true)
+    }
+
+    val favoriteSongs = remember(songs, favorites) {
+        songs.filter { favorites.contains(it.uri) }
     }
 
     val displayedAlbums = remember(filteredSongs, sortOption) {
@@ -144,6 +154,70 @@ fun LibraryPanel(
                 }
             }
             Spacer(modifier = Modifier.height(HiFiDimensions.Medium))
+        }
+
+        // --- SEÇÃO FAVORITOS ---
+        if (favoriteSongs.isNotEmpty()) {
+            Text(
+                text = "⭐ FAVORITOS",
+                style = MaterialTheme.typography.labelSmall,
+                color = HiFiColors.Sand,
+                letterSpacing = 2.sp,
+                modifier = Modifier.padding(top = HiFiDimensions.Large)
+            )
+
+            Spacer(modifier = Modifier.height(HiFiDimensions.Medium))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = HiFiDimensions.Medium)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { expandedFavorites = !expandedFavorites }
+                        .padding(vertical = HiFiDimensions.Small),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Favorite,
+                        contentDescription = null,
+                        tint = HiFiColors.Copper,
+                        modifier = Modifier.padding(end = HiFiDimensions.Medium)
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Músicas Favoritas",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = HiFiColors.Ivory
+                        )
+                        Text(
+                            text = "${favoriteSongs.size} músicas",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = HiFiColors.Sand
+                        )
+                    }
+                    Text(
+                        text = if (expandedFavorites) "▼" else "►",
+                        color = HiFiColors.Copper,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+                
+                if (expandedFavorites) {
+                    favoriteSongs.forEach { song ->
+                        SongListItem(
+                            song = song,
+                            isSelected = selectedSongId == song.id,
+                            onClick = { onSongClick(song) },
+                            modifier = Modifier.padding(start = 32.dp)
+                        )
+                    }
+                }
+                
+                HorizontalDivider(thickness = HiFiDimensions.BorderWidth, color = HiFiColors.Divider)
+            }
         }
 
         // --- SEÇÃO PLAYLISTS ---
@@ -412,16 +486,23 @@ fun LibraryPanel(
                         .padding(vertical = HiFiDimensions.ExtraLarge),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    Icon(
+                        imageVector = Icons.Default.MusicNote,
+                        contentDescription = null,
+                        tint = HiFiColors.Copper.copy(alpha = 0.5f),
+                        modifier = Modifier.size(64.dp)
+                    )
+                    Spacer(modifier = Modifier.height(HiFiDimensions.Medium))
                     Text(
                         text = "Sua biblioteca está vazia.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = HiFiColors.Sand,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = HiFiColors.Ivory,
                         textAlign = TextAlign.Center
                     )
                     Spacer(modifier = Modifier.height(HiFiDimensions.Small))
                     Text(
-                        text = "Adicione músicas usando o botão acima.",
-                        style = MaterialTheme.typography.bodySmall,
+                        text = "Importe álbuns usando os botões acima.",
+                        style = MaterialTheme.typography.bodyMedium,
                         color = HiFiColors.Sand,
                         textAlign = TextAlign.Center
                     )
