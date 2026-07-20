@@ -20,10 +20,23 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+import com.example.mobiledisco.data.toAlbums
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+
+data class MusicStatistics(
+    val totalSongs: Int = 0,
+    val totalAlbums: Int = 0,
+    val totalPlaylists: Int = 0,
+    val totalFavorites: Int = 0,
+    val totalHistory: Int = 0,
+    val totalPlays: Int = 0,
+    val mostPlayedSong: Pair<Song, Int>? = null,
+    val mostPlayedArtist: Pair<String, Int>? = null,
+    val mostPlayedAlbum: Pair<String, Int>? = null
+)
 
 class MusicViewModel(
     application: Application
@@ -108,6 +121,45 @@ class MusicViewModel(
             song.album.contains(query, ignoreCase = true)
         }
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    val statistics = combine(
+        biblioteca,
+        playlists,
+        favoritos,
+        historico,
+        _playCounts
+    ) { songs, playlists, favs, hist, counts ->
+        val albums = songs.toAlbums()
+        val totalPlays = counts.values.sum()
+        
+        val mostPlayedSong = counts.maxByOrNull { it.value }?.let { entry ->
+            songs.find { it.uri == entry.key }?.let { it to entry.value }
+        }
+
+        val artistCounts = counts.mapNotNull { entry ->
+            songs.find { it.uri == entry.key }?.let { it.artist to entry.value }
+        }.groupBy({ it.first }, { it.second }).mapValues { it.value.sum() }
+        
+        val mostPlayedArtist = artistCounts.maxByOrNull { it.value }?.toPair()
+
+        val albumCounts = counts.mapNotNull { entry ->
+            songs.find { it.uri == entry.key }?.let { "${it.album} - ${it.artist}" to entry.value }
+        }.groupBy({ it.first }, { it.second }).mapValues { it.value.sum() }
+
+        val mostPlayedAlbum = albumCounts.maxByOrNull { it.value }?.toPair()
+
+        MusicStatistics(
+            totalSongs = songs.size,
+            totalAlbums = albums.size,
+            totalPlaylists = playlists.size,
+            totalFavorites = favs.size,
+            totalHistory = hist.size,
+            totalPlays = totalPlays,
+            mostPlayedSong = mostPlayedSong,
+            mostPlayedArtist = mostPlayedArtist,
+            mostPlayedAlbum = mostPlayedAlbum
+        )
+    }.stateIn(viewModelScope, SharingStarted.Lazily, MusicStatistics())
 
     private val _isEditingPlaylist = MutableStateFlow<Long?>(null)
     val isEditingPlaylist = _isEditingPlaylist.asStateFlow()

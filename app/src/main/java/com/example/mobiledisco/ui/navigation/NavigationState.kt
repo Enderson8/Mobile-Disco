@@ -26,4 +26,8 @@ class NavigationState {
         currentScreen = AppScreen.PLAYLIST
     }
 
+    fun openStatistics() {
+        currentScreen = AppScreen.STATISTICS
+    }
+
 }

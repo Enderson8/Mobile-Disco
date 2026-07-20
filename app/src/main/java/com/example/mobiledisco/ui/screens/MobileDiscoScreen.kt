@@ -38,7 +38,8 @@ fun MobileDiscoScreen(
                     viewModel = viewModel,
                     onCoverClick = { navigation.openNowPlaying() },
                     onPlaylistClick = { playlist -> navigation.openPlaylist(playlist.id) },
-                    onNavigateToPlaylist = { id -> navigation.openPlaylist(id) }
+                    onNavigateToPlaylist = { id -> navigation.openPlaylist(id) },
+                    onOpenStatistics = { navigation.openStatistics() }
                 )
             }
             AppScreen.NOW_PLAYING -> {
@@ -81,6 +82,13 @@ fun MobileDiscoScreen(
                 } else {
                     navigation.openLibrary()
                 }
+            }
+            AppScreen.STATISTICS -> {
+                val stats by viewModel.statistics.collectAsState()
+                StatisticsScreen(
+                    stats = stats,
+                    onBack = { navigation.openLibrary() }
+                )
             }
         }
     }

@@ -60,6 +60,7 @@ fun HomeScreenContent(
     onCoverClick: () -> Unit,
     onPlaylistClick: (Playlist) -> Unit,
     onNavigateToPlaylist: (Long) -> Unit,
+    onOpenStatistics: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -276,6 +277,7 @@ fun HomeScreenContent(
                     viewModel.concluirEdicaoPlaylist()
                     if (id != null) onNavigateToPlaylist(id)
                 },
+                onOpenStatistics = onOpenStatistics,
                 onShowSnackbar = { message ->
                     scope.launch {
                         snackbarHostState.showSnackbar(message)

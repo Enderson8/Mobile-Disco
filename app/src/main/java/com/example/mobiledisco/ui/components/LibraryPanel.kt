@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlaylistPlay
@@ -79,6 +80,7 @@ fun LibraryPanel(
     onRemoverPlaylist: (Long) -> Unit,
     onAddSongToPlaylist: (Long, Song) -> Boolean,
     onConcluirEdicao: () -> Unit,
+    onOpenStatistics: () -> Unit,
     onShowSnackbar: (String) -> Unit
 ) {
     var sortOption by remember { mutableStateOf(SortOption.NAME) }
@@ -187,6 +189,38 @@ fun LibraryPanel(
                 }
             }
             Spacer(modifier = Modifier.height(HiFiDimensions.Medium))
+
+        // --- SEÇÃO ESTATÍSTICAS (F6.4) ---
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = HiFiDimensions.Medium)
+                .clickable { onOpenStatistics() }
+                .padding(vertical = HiFiDimensions.Medium),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.BarChart,
+                contentDescription = null,
+                tint = HiFiColors.Copper,
+                modifier = Modifier.size(24.dp)
+            )
+            Text(
+                text = "📊 ESTATÍSTICAS",
+                style = MaterialTheme.typography.labelSmall,
+                color = HiFiColors.Ivory,
+                letterSpacing = 2.sp,
+                modifier = Modifier.padding(start = HiFiDimensions.Medium)
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = "▶",
+                color = HiFiColors.Copper,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+
+        HorizontalDivider(thickness = HiFiDimensions.BorderWidth, color = HiFiColors.Divider)
         }
 
         // --- SEÇÃO HISTÓRICO ---
