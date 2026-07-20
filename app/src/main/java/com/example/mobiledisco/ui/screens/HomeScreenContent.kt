@@ -68,9 +68,12 @@ fun HomeScreenContent(
     
     val isPlaying by viewModel.isPlaying.collectAsState()
     val musicaSelecionada by viewModel.musicaSelecionada.collectAsState()
-    val biblioteca by viewModel.biblioteca.collectAsState()
-    val playlists by viewModel.playlists.collectAsState()
+    val biblioteca by viewModel.filteredBiblioteca.collectAsState()
+    val playlists by viewModel.filteredPlaylists.collectAsState()
     val favoritos by viewModel.favoritos.collectAsState()
+    val historico by viewModel.filteredHistorico.collectAsState()
+    val maisTocadas by viewModel.filteredMaisTocadas.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
     val currentPosition by viewModel.currentPosition.collectAsState()
     val duration by viewModel.duration.collectAsState()
     val isShuffleEnabled by viewModel.isShuffleEnabled.collectAsState()
@@ -242,11 +245,15 @@ fun HomeScreenContent(
                 Spacer(modifier = Modifier.height(HiFiDimensions.Large))
 
                 LibraryPanel(
-                songs = biblioteca,
-                playlists = playlists,
-                favorites = favoritos,
-                selectedSongId = musicaSelecionada?.id,
-                isEditingPlaylist = isEditingPlaylist,
+                    songs = biblioteca,
+                    playlists = playlists,
+                    favorites = favoritos,
+                    history = historico,
+                    mostPlayed = maisTocadas,
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = viewModel::updateSearchQuery,
+                    selectedSongId = musicaSelecionada?.id,
+                    isEditingPlaylist = isEditingPlaylist,
                 onSongClick = { song ->
                     if (isEditingPlaylist != null) {
                         val added = viewModel.adicionarMusicaNaPlaylist(isEditingPlaylist!!, song)

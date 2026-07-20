@@ -65,7 +65,11 @@ import com.example.mobiledisco.ui.theme.HiFiDimensions
 fun LibraryPanel(
     songs: List<Song>,
     playlists: List<Playlist>,
-    favorites: Set<String>, // Adicionado
+    favorites: Set<String>,
+    history: List<Song>,
+    mostPlayed: List<Pair<Song, Int>>, // Adicionado
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
     selectedSongId: Long?,
     isEditingPlaylist: Long? = null,
     onSongClick: (Song) -> Unit,
@@ -77,7 +81,6 @@ fun LibraryPanel(
     onConcluirEdicao: () -> Unit,
     onShowSnackbar: (String) -> Unit
 ) {
-    var searchText by remember { mutableStateOf("") }
     var sortOption by remember { mutableStateOf(SortOption.NAME) }
     var expanded by remember { mutableStateOf(false) }
     var showCreateDialog by remember { mutableStateOf(false) }
@@ -97,21 +100,17 @@ fun LibraryPanel(
     // Estado para controlar quais álbuns estão expandidos (pelo nome + artista)
     var expandedAlbums by remember { mutableStateOf(setOf<String>()) }
     
-    // Estado para expandir seção de favoritos
+    // Estado para expandir seções
     var expandedFavorites by remember { mutableStateOf(false) }
-
-    val filteredSongs = songs.filter {
-        it.name.contains(searchText, ignoreCase = true) ||
-                it.artist.contains(searchText, ignoreCase = true) ||
-                it.album.contains(searchText, ignoreCase = true)
-    }
+    var expandedHistory by remember { mutableStateOf(false) }
+    var expandedMostPlayed by remember { mutableStateOf(false) }
 
     val favoriteSongs = remember(songs, favorites) {
         songs.filter { favorites.contains(it.uri) }
     }
 
-    val displayedAlbums = remember(filteredSongs, sortOption) {
-        val albums = filteredSongs.toAlbums()
+    val displayedAlbums = remember(songs, sortOption) {
+        val albums = songs.toAlbums()
         when (sortOption) {
             SortOption.NAME -> albums.sortedBy { it.name.lowercase() }
             SortOption.ARTIST -> albums.sortedBy { it.artist.lowercase() }
@@ -123,6 +122,40 @@ fun LibraryPanel(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // --- PESQUISA GLOBAL (F6.1) ---
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = onSearchQueryChange,
+            placeholder = { Text("Pesquisar em tudo...", color = HiFiColors.Sand) },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = null,
+                    tint = HiFiColors.Copper
+                )
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = HiFiDimensions.Medium),
+            singleLine = true,
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = HiFiColors.Ivory,
+                unfocusedTextColor = HiFiColors.Ivory,
+                focusedContainerColor = HiFiColors.DarkPanel,
+                unfocusedContainerColor = HiFiColors.Espresso,
+                cursorColor = HiFiColors.Copper,
+                focusedBorderColor = HiFiColors.Copper,
+                unfocusedBorderColor = HiFiColors.CopperDark,
+                focusedLabelColor = HiFiColors.Copper,
+                unfocusedLabelColor = HiFiColors.Sand,
+                focusedPlaceholderColor = HiFiColors.Sand,
+                unfocusedPlaceholderColor = HiFiColors.SoftBrown
+            )
+        )
+
+        Spacer(modifier = Modifier.height(HiFiDimensions.Medium))
+
         // --- CABEÇALHO DE EDIÇÃO (Modo F3.6) ---
         if (isEditingPlaylist != null) {
             Surface(
@@ -154,6 +187,70 @@ fun LibraryPanel(
                 }
             }
             Spacer(modifier = Modifier.height(HiFiDimensions.Medium))
+        }
+
+        // --- SEÇÃO HISTÓRICO ---
+        if (history.isNotEmpty()) {
+            Text(
+                text = "🕒 ÚLTIMAS REPRODUZIDAS",
+                style = MaterialTheme.typography.labelSmall,
+                color = HiFiColors.Sand,
+                letterSpacing = 2.sp,
+                modifier = Modifier.padding(top = HiFiDimensions.Large)
+            )
+
+            Spacer(modifier = Modifier.height(HiFiDimensions.Medium))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = HiFiDimensions.Medium)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { expandedHistory = !expandedHistory }
+                        .padding(vertical = HiFiDimensions.Small),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MusicNote,
+                        contentDescription = null,
+                        tint = HiFiColors.Copper,
+                        modifier = Modifier.padding(end = HiFiDimensions.Medium)
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Histórico",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = HiFiColors.Ivory
+                        )
+                        Text(
+                            text = "${history.size} músicas",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = HiFiColors.Sand
+                        )
+                    }
+                    Text(
+                        text = if (expandedHistory) "▼" else "►",
+                        color = HiFiColors.Copper,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+                
+                if (expandedHistory) {
+                    history.forEach { song ->
+                        SongListItem(
+                            song = song,
+                            isSelected = selectedSongId == song.id,
+                            onClick = { onSongClick(song) },
+                            modifier = Modifier.padding(start = 32.dp)
+                        )
+                    }
+                }
+                
+                HorizontalDivider(thickness = HiFiDimensions.BorderWidth, color = HiFiColors.Divider)
+            }
         }
 
         // --- SEÇÃO FAVORITOS ---
@@ -212,6 +309,71 @@ fun LibraryPanel(
                             isSelected = selectedSongId == song.id,
                             onClick = { onSongClick(song) },
                             modifier = Modifier.padding(start = 32.dp)
+                        )
+                    }
+                }
+                
+                HorizontalDivider(thickness = HiFiDimensions.BorderWidth, color = HiFiColors.Divider)
+            }
+        }
+
+        // --- SEÇÃO MAIS TOCADAS ---
+        if (mostPlayed.isNotEmpty()) {
+            Text(
+                text = "🔥 MAIS TOCADAS",
+                style = MaterialTheme.typography.labelSmall,
+                color = HiFiColors.Sand,
+                letterSpacing = 2.sp,
+                modifier = Modifier.padding(top = HiFiDimensions.Large)
+            )
+
+            Spacer(modifier = Modifier.height(HiFiDimensions.Medium))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = HiFiDimensions.Medium)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { expandedMostPlayed = !expandedMostPlayed }
+                        .padding(vertical = HiFiDimensions.Small),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MusicNote,
+                        contentDescription = null,
+                        tint = HiFiColors.Copper,
+                        modifier = Modifier.padding(end = HiFiDimensions.Medium)
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Mais Tocadas",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = HiFiColors.Ivory
+                        )
+                        Text(
+                            text = "${mostPlayed.size} faixas populares",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = HiFiColors.Sand
+                        )
+                    }
+                    Text(
+                        text = if (expandedMostPlayed) "▼" else "►",
+                        color = HiFiColors.Copper,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+                
+                if (expandedMostPlayed) {
+                    mostPlayed.forEach { (song, count) ->
+                        SongListItem(
+                            song = song,
+                            isSelected = selectedSongId == song.id,
+                            onClick = { onSongClick(song) },
+                            modifier = Modifier.padding(start = 32.dp),
+                            label = "$count"
                         )
                     }
                 }
@@ -356,7 +518,7 @@ fun LibraryPanel(
 
         // 2. Contador (Informação secundária)
         Text(
-            text = if (searchText.isEmpty())
+            text = if (searchQuery.isEmpty())
                 "${songs.size} músicas"
             else
                 "${displayedAlbums.size} resultados",
@@ -365,40 +527,6 @@ fun LibraryPanel(
         )
 
         Spacer(modifier = Modifier.height(HiFiDimensions.Large))
-
-        // 3. Campo de Pesquisa
-        OutlinedTextField(
-            value = searchText,
-            onValueChange = { searchText = it },
-            placeholder = { Text("Pesquisar na biblioteca...", color = HiFiColors.Sand) },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = null,
-                    tint = HiFiColors.Copper
-                )
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = HiFiDimensions.Medium),
-            singleLine = true,
-            shape = RoundedCornerShape(12.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = HiFiColors.Ivory,
-                unfocusedTextColor = HiFiColors.Ivory,
-                focusedContainerColor = HiFiColors.DarkPanel,
-                unfocusedContainerColor = HiFiColors.Espresso,
-                cursorColor = HiFiColors.Copper,
-                focusedBorderColor = HiFiColors.Copper,
-                unfocusedBorderColor = HiFiColors.CopperDark,
-                focusedLabelColor = HiFiColors.Copper,
-                unfocusedLabelColor = HiFiColors.Sand,
-                focusedPlaceholderColor = HiFiColors.Sand,
-                unfocusedPlaceholderColor = HiFiColors.SoftBrown
-            )
-        )
-
-        Spacer(modifier = Modifier.height(HiFiDimensions.Medium))
 
         // 4. Seletor de Ordenação
         ExposedDropdownMenuBox(
@@ -479,7 +607,7 @@ fun LibraryPanel(
             },
             label = "libraryFade"
         ) { targetAlbums ->
-            if (songs.isEmpty()) {
+            if (songs.isEmpty() && searchQuery.isEmpty()) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()

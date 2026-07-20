@@ -34,7 +34,8 @@ fun SongListItem(
     isSelected: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    label: String? = null
 ) {
     val backgroundColor by animateColorAsState(
         targetValue = if (isSelected) HiFiColors.DarkPanel else Color.Transparent,
@@ -85,7 +86,9 @@ fun SongListItem(
                         append(song.name)
                     },
                     style = MaterialTheme.typography.titleMedium,
-                    color = HiFiColors.Ivory
+                    color = HiFiColors.Ivory,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
                 
                 Spacer(modifier = Modifier.height(2.dp))
@@ -93,7 +96,18 @@ fun SongListItem(
                 Text(
                     text = song.artist,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = HiFiColors.Sand
+                    color = HiFiColors.Sand,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+            }
+
+            if (label != null) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = HiFiColors.Copper,
+                    modifier = Modifier.padding(end = HiFiDimensions.Medium)
                 )
             }
         }
