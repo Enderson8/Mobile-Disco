@@ -4,5 +4,6 @@ enum class AppScreen {
     LIBRARY,
     NOW_PLAYING,
     PLAYLIST,
-    STATISTICS
+    STATISTICS,
+    SETTINGS
 }

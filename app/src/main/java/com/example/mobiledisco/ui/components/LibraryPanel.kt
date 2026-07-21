@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlaylistPlay
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -81,6 +82,7 @@ fun LibraryPanel(
     onAddSongToPlaylist: (Long, Song) -> Boolean,
     onConcluirEdicao: () -> Unit,
     onOpenStatistics: () -> Unit,
+    onOpenSettings: () -> Unit, // Adicionado
     onShowSnackbar: (String) -> Unit
 ) {
     var sortOption by remember { mutableStateOf(SortOption.NAME) }
@@ -207,6 +209,38 @@ fun LibraryPanel(
             )
             Text(
                 text = "📊 ESTATÍSTICAS",
+                style = MaterialTheme.typography.labelSmall,
+                color = HiFiColors.Ivory,
+                letterSpacing = 2.sp,
+                modifier = Modifier.padding(start = HiFiDimensions.Medium)
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = "▶",
+                color = HiFiColors.Copper,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+
+        HorizontalDivider(thickness = HiFiDimensions.BorderWidth, color = HiFiColors.Divider)
+
+        // --- SEÇÃO CONFIGURAÇÕES (F7.0) ---
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = HiFiDimensions.Medium)
+                .clickable { onOpenSettings() }
+                .padding(vertical = HiFiDimensions.Medium),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Settings,
+                contentDescription = null,
+                tint = HiFiColors.Copper,
+                modifier = Modifier.size(24.dp)
+            )
+            Text(
+                text = "⚙ CONFIGURAÇÕES",
                 style = MaterialTheme.typography.labelSmall,
                 color = HiFiColors.Ivory,
                 letterSpacing = 2.sp,

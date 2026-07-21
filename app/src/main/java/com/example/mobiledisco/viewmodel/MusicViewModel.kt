@@ -25,6 +25,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import org.json.JSONArray
+import org.json.JSONObject
 
 data class MusicStatistics(
     val totalSongs: Int = 0,
@@ -444,6 +446,27 @@ class MusicViewModel(
         player.stop()
     }
 
+    fun limparHistorico() {
+        _historico.value = emptyList()
+        prefs.edit().remove("SETTINGS_HISTORICO").apply()
+    }
+
+    fun limparFavoritos() {
+        _favoritos.value = emptySet()
+        prefs.edit().remove("SETTINGS_FAVORITOS").apply()
+    }
+
+    fun zerarEstatisticas() {
+        _playCounts.value = emptyMap()
+        val editor = prefs.edit()
+        prefs.all.keys.forEach { key ->
+            if (key.startsWith("STATS_PLAY_COUNT_")) {
+                editor.remove(key)
+            }
+        }
+        editor.apply()
+    }
+
     fun toggle() {
         player.togglePlayback()
     }
@@ -627,5 +650,156 @@ class MusicViewModel(
     override fun onCleared() {
         player.release()
         super.onCleared()
+    }
+
+    fun exportarDados(): String {
+        try {
+            val root = JSONObject()
+            root.put("version", 1)
+
+            // Biblioteca
+            val libArray = JSONArray()
+            _biblioteca.value.forEach { song ->
+                val s = JSONObject()
+                s.put("uri", song.uri)
+                s.put("name", song.name)
+                s.put("artist", song.artist)
+                s.put("album", song.album)
+                s.put("duration", song.duration)
+                s.put("trackNumber", song.trackNumber)
+                libArray.put(s)
+            }
+            root.put("library", libArray)
+
+            // Playlists
+            val plArray = JSONArray()
+            _playlists.value.forEach { playlist ->
+                val p = JSONObject()
+                p.put("id", playlist.id)
+                p.put("name", playlist.name)
+                val sUris = JSONArray()
+                playlist.songs.forEach { sUris.put(it.uri) }
+                p.put("songs", sUris)
+                plArray.put(p)
+            }
+            root.put("playlists", plArray)
+
+            // Favoritos
+            val favArray = JSONArray()
+            _favoritos.value.forEach { favArray.put(it) }
+            root.put("favorites", favArray)
+
+            // Histórico
+            val histArray = JSONArray()
+            _historico.value.forEach { histArray.put(it) }
+            root.put("history", histArray)
+
+            // Estatísticas
+            val statsObj = JSONObject()
+            _playCounts.value.forEach { (uri, count) ->
+                statsObj.put(uri, count)
+            }
+            root.put("playCounts", statsObj)
+
+            // Configurações
+            val settings = JSONObject()
+            settings.put("shuffle", _isShuffleEnabled.value)
+            settings.put("repeat", _repeatMode.value.name)
+            root.put("settings", settings)
+
+            return root.toString(2)
+        } catch (e: Exception) {
+            Log.e("MobileDisco", "Erro ao exportar dados", e)
+            return ""
+        }
+    }
+
+    fun importarDados(jsonString: String): Boolean {
+        try {
+            val root = JSONObject(jsonString)
+            
+            // Importar Biblioteca
+            val libArray = root.getJSONArray("library")
+            val novasMusicas = mutableListOf<Song>()
+            for (i in 0 until libArray.length()) {
+                val s = libArray.getJSONObject(i)
+                novasMusicas.add(Song(
+                    uri = s.getString("uri"),
+                    name = s.getString("name"),
+                    artist = s.getString("artist"),
+                    album = s.getString("album"),
+                    duration = s.getLong("duration"),
+                    trackNumber = s.getInt("trackNumber"),
+                    id = s.getString("uri").hashCode().toLong(),
+                    cover = null
+                ))
+            }
+            _biblioteca.value = novasMusicas
+            // Persistir biblioteca
+            novasMusicas.forEach { persistirMusica(it) }
+
+            // Importar Favoritos
+            val favArray = root.getJSONArray("favorites")
+            val novosFavs = mutableSetOf<String>()
+            for (i in 0 until favArray.length()) { novosFavs.add(favArray.getString(i)) }
+            _favoritos.value = novosFavs
+            prefs.edit().putStringSet("SETTINGS_FAVORITOS", novosFavs).apply()
+
+            // Importar Histórico
+            val histArray = root.getJSONArray("history")
+            val novoHist = mutableListOf<String>()
+            for (i in 0 until histArray.length()) { novoHist.add(histArray.getString(i)) }
+            _historico.value = novoHist
+            prefs.edit().putString("SETTINGS_HISTORICO", novoHist.joinToString(";;;")).apply()
+
+            // Importar Estatísticas
+            val statsObj = root.getJSONObject("playCounts")
+            val novosCounts = mutableMapOf<String, Int>()
+            val keys = statsObj.keys()
+            val editor = prefs.edit()
+            while (keys.hasNext()) {
+                val uri = keys.next()
+                val count = statsObj.getInt(uri)
+                novosCounts[uri] = count
+                editor.putInt("STATS_PLAY_COUNT_$uri", count)
+            }
+            _playCounts.value = novosCounts
+            editor.apply()
+
+            // Importar Playlists
+            val plArray = root.getJSONArray("playlists")
+            val novasPlaylists = mutableListOf<Playlist>()
+            for (i in 0 until plArray.length()) {
+                val p = plArray.getJSONObject(i)
+                val sUris = p.getJSONArray("songs")
+                val uris = mutableListOf<String>()
+                for (j in 0 until sUris.length()) { uris.add(sUris.getString(j)) }
+                
+                val pSongs = uris.mapNotNull { uri -> novasMusicas.find { it.uri == uri } }
+                novasPlaylists.add(Playlist(p.getLong("id"), p.getString("name"), pSongs))
+            }
+            _playlists.value = novasPlaylists
+            playlistRepository.savePlaylists(novasPlaylists)
+
+            // Importar Configurações
+            val settings = root.getJSONObject("settings")
+            val shuffle = settings.getBoolean("shuffle")
+            val repeat = RepeatMode.valueOf(settings.getString("repeat"))
+            
+            _isShuffleEnabled.value = shuffle
+            _repeatMode.value = repeat
+            prefs.edit()
+                .putBoolean("SETTINGS_SHUFFLE", shuffle)
+                .putInt("SETTINGS_REPEAT", repeat.ordinal)
+                .apply()
+
+            // Atualiza metadados em segundo plano para carregar capas
+            atualizarMetadadosEmSegundoPlano(getApplication())
+
+            return true
+        } catch (e: Exception) {
+            Log.e("MobileDisco", "Erro ao importar dados", e)
+            return false
+        }
     }
 }

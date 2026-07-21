@@ -30,4 +30,8 @@ class NavigationState {
         currentScreen = AppScreen.STATISTICS
     }
 
+    fun openSettings() {
+        currentScreen = AppScreen.SETTINGS
+    }
+
 }

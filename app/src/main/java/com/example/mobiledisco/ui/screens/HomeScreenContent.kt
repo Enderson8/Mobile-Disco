@@ -61,6 +61,7 @@ fun HomeScreenContent(
     onPlaylistClick: (Playlist) -> Unit,
     onNavigateToPlaylist: (Long) -> Unit,
     onOpenStatistics: () -> Unit,
+    onOpenSettings: () -> Unit, // Adicionado
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -273,12 +274,13 @@ fun HomeScreenContent(
                 onRemoverPlaylist = viewModel::removerPlaylist,
                 onAddSongToPlaylist = viewModel::adicionarMusicaNaPlaylist,
                                 onConcluirEdicao = { 
-                    val id = isEditingPlaylist
-                    viewModel.concluirEdicaoPlaylist()
-                    if (id != null) onNavigateToPlaylist(id)
-                },
-                onOpenStatistics = onOpenStatistics,
-                onShowSnackbar = { message ->
+                        val id = isEditingPlaylist
+                        viewModel.concluirEdicaoPlaylist()
+                        if (id != null) onNavigateToPlaylist(id)
+                    },
+                    onOpenStatistics = onOpenStatistics,
+                    onOpenSettings = onOpenSettings,
+                    onShowSnackbar = { message ->
                     scope.launch {
                         snackbarHostState.showSnackbar(message)
                     }

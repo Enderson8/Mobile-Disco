@@ -1,6 +1,8 @@
 package com.example.mobiledisco.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.Crossfade
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -15,11 +17,20 @@ import com.example.mobiledisco.ui.navigation.AppScreen
 import com.example.mobiledisco.ui.navigation.NavigationState
 import com.example.mobiledisco.ui.theme.MobileDiscoTheme
 import com.example.mobiledisco.viewmodel.MusicViewModel
+import androidx.activity.compose.BackHandler
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.io.OutputStreamWriter
 
 @Composable
 fun MobileDiscoScreen(
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val navigation = remember { NavigationState() }
     val viewModel: MusicViewModel = viewModel()
     
@@ -31,6 +42,44 @@ fun MobileDiscoScreen(
     val isShuffleEnabled by viewModel.isShuffleEnabled.collectAsState()
     val repeatMode by viewModel.repeatMode.collectAsState()
 
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        uri?.let {
+            scope.launch {
+                try {
+                    val json = viewModel.exportarDados()
+                    context.contentResolver.openOutputStream(it)?.use { outputStream ->
+                        OutputStreamWriter(outputStream).use { writer ->
+                            writer.write(json)
+                        }
+                    }
+                } catch (e: Exception) {
+                    // Feedback visual via snackbar poderia ser adicionado aqui
+                }
+            }
+        }
+    }
+
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        uri?.let {
+            scope.launch {
+                try {
+                    context.contentResolver.openInputStream(it)?.use { inputStream ->
+                        BufferedReader(InputStreamReader(inputStream)).use { reader ->
+                            val json = reader.readText()
+                            viewModel.importarDados(json)
+                        }
+                    }
+                } catch (e: Exception) {
+                    // Feedback visual
+                }
+            }
+        }
+    }
+
     Crossfade(targetState = navigation.currentScreen, label = "screenTransition") { screen ->
         when (screen) {
             AppScreen.LIBRARY -> {
@@ -39,7 +88,8 @@ fun MobileDiscoScreen(
                     onCoverClick = { navigation.openNowPlaying() },
                     onPlaylistClick = { playlist -> navigation.openPlaylist(playlist.id) },
                     onNavigateToPlaylist = { id -> navigation.openPlaylist(id) },
-                    onOpenStatistics = { navigation.openStatistics() }
+                    onOpenStatistics = { navigation.openStatistics() },
+                    onOpenSettings = { navigation.openSettings() }
                 )
             }
             AppScreen.NOW_PLAYING -> {
@@ -87,6 +137,16 @@ fun MobileDiscoScreen(
                 val stats by viewModel.statistics.collectAsState()
                 StatisticsScreen(
                     stats = stats,
+                    onBack = { navigation.openLibrary() }
+                )
+            }
+            AppScreen.SETTINGS -> {
+                SettingsScreen(
+                    onLimparHistorico = { viewModel.limparHistorico() },
+                    onLimparFavoritos = { viewModel.limparFavoritos() },
+                    onZerarEstatisticas = { viewModel.zerarEstatisticas() },
+                    onExportarBiblioteca = { exportLauncher.launch("mobile_disco_backup.json") },
+                    onImportarBiblioteca = { importLauncher.launch(arrayOf("application/json", "text/*")) },
                     onBack = { navigation.openLibrary() }
                 )
             }
