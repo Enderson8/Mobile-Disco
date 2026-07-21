@@ -81,6 +81,8 @@ fun HomeScreenContent(
     val isShuffleEnabled by viewModel.isShuffleEnabled.collectAsState()
     val repeatMode by viewModel.repeatMode.collectAsState()
     val isEditingPlaylist by viewModel.isEditingPlaylist.collectAsState()
+    val sortOrder by viewModel.sortOrder.collectAsState()
+    val filterOption by viewModel.filterOption.collectAsState()
 
     val uiState = PlayerUiState(
         musica = musicaSelecionada,
@@ -256,7 +258,11 @@ fun HomeScreenContent(
                     onSearchQueryChange = viewModel::updateSearchQuery,
                     selectedSongId = musicaSelecionada?.id,
                     isEditingPlaylist = isEditingPlaylist,
-                onSongClick = { song ->
+                    sortOrder = sortOrder,
+                    onSortOrderChange = viewModel::updateSortOrder,
+                    filterOption = filterOption,
+                    onFilterOptionChange = viewModel::updateFilterOption,
+                    onSongClick = { song ->
                     if (isEditingPlaylist != null) {
                         val added = viewModel.adicionarMusicaNaPlaylist(isEditingPlaylist!!, song)
                         if (added) {

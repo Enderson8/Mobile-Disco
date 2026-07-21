@@ -20,6 +20,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+import com.example.mobiledisco.ui.state.FilterOption
+import com.example.mobiledisco.ui.state.SortDirection
+import com.example.mobiledisco.ui.state.SortField
+import com.example.mobiledisco.ui.state.SortOrder
 import com.example.mobiledisco.data.toAlbums
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -76,17 +80,34 @@ class MusicViewModel(
     private val _searchQuery = MutableStateFlow("")
     val searchQuery = _searchQuery.asStateFlow()
 
+    private val _sortOrder = MutableStateFlow(SortOrder())
+    val sortOrder = _sortOrder.asStateFlow()
+
+    private val _filterOption = MutableStateFlow(FilterOption.ALL)
+    val filterOption = _filterOption.asStateFlow()
+
     val filteredPlaylists = combine(playlists, searchQuery) { playlists, query ->
         if (query.isBlank()) playlists
         else playlists.filter { it.name.contains(query, ignoreCase = true) }
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    val filteredBiblioteca = combine(biblioteca, searchQuery) { songs, query ->
-        if (query.isBlank()) songs
+    val filteredBiblioteca = combine(biblioteca, searchQuery, sortOrder, _playCounts) { songs, query, sort, counts ->
+        val filtered = if (query.isBlank()) songs
         else songs.filter {
             it.name.contains(query, ignoreCase = true) ||
             it.artist.contains(query, ignoreCase = true) ||
             it.album.contains(query, ignoreCase = true)
+        }
+
+        when (sort.field) {
+            SortField.NAME -> if (sort.direction == SortDirection.ASCENDING) filtered.sortedBy { it.name.lowercase() } else filtered.sortedByDescending { it.name.lowercase() }
+            SortField.ARTIST -> if (sort.direction == SortDirection.ASCENDING) filtered.sortedBy { it.artist.lowercase() } else filtered.sortedByDescending { it.artist.lowercase() }
+            SortField.ALBUM -> if (sort.direction == SortDirection.ASCENDING) filtered.sortedBy { it.album.lowercase() } else filtered.sortedByDescending { it.album.lowercase() }
+            SortField.IMPORT_DATE -> if (sort.direction == SortDirection.ASCENDING) filtered.sortedBy { it.importDate } else filtered.sortedByDescending { it.importDate }
+            SortField.MOST_PLAYED -> {
+                val sorted = filtered.sortedByDescending { counts[it.uri] ?: 0 }
+                if (sort.direction == SortDirection.ASCENDING) sorted.reversed() else sorted
+            }
         }
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
@@ -237,6 +258,14 @@ class MusicViewModel(
         _isShuffleEnabled.value = prefs.getBoolean("SETTINGS_SHUFFLE", false)
         val repeatOrdinal = prefs.getInt("SETTINGS_REPEAT", RepeatMode.NONE.ordinal)
         _repeatMode.value = RepeatMode.values()[repeatOrdinal]
+
+        val sortField = SortField.valueOf(prefs.getString("SETTINGS_SORT_FIELD", SortField.NAME.name) ?: SortField.NAME.name)
+        val sortDirection = SortDirection.valueOf(prefs.getString("SETTINGS_SORT_DIRECTION", SortDirection.ASCENDING.name) ?: SortDirection.ASCENDING.name)
+        _sortOrder.value = SortOrder(sortField, sortDirection)
+
+        val filterName = prefs.getString("SETTINGS_FILTER_OPTION", FilterOption.ALL.name) ?: FilterOption.ALL.name
+        _filterOption.value = FilterOption.valueOf(filterName)
+
         carregarEstatisticas()
     }
 
@@ -324,7 +353,8 @@ class MusicViewModel(
                         duration = data[4].toLongOrNull() ?: 0L,
                         id = data[0].hashCode().toLong(),
                         cover = null,
-                        trackNumber = data.getOrNull(5)?.toIntOrNull() ?: 0
+                        trackNumber = data.getOrNull(5)?.toIntOrNull() ?: 0,
+                        importDate = data.getOrNull(6)?.toLongOrNull() ?: System.currentTimeMillis()
                     )
                 } else null
             } catch (e: Exception) {
@@ -427,7 +457,7 @@ class MusicViewModel(
     }
 
     private fun persistirMusica(song: Song) {
-        val metadataString = "${song.uri}:::${song.name}:::${song.artist}:::${song.album}:::${song.duration}:::${song.trackNumber}"
+        val metadataString = "${song.uri}:::${song.name}:::${song.artist}:::${song.album}:::${song.duration}:::${song.trackNumber}:::${song.importDate}"
         prefs.edit()
             .putString(song.uri, metadataString)
             .apply()
@@ -482,6 +512,21 @@ class MusicViewModel(
 
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
+    }
+
+    fun updateSortOrder(order: SortOrder) {
+        _sortOrder.value = order
+        prefs.edit()
+            .putString("SETTINGS_SORT_FIELD", order.field.name)
+            .putString("SETTINGS_SORT_DIRECTION", order.direction.name)
+            .apply()
+    }
+
+    fun updateFilterOption(option: FilterOption) {
+        _filterOption.value = option
+        prefs.edit()
+            .putString("SETTINGS_FILTER_OPTION", option.name)
+            .apply()
     }
 
     fun handlePlayerEvent(event: PlayerEvent) {
@@ -667,6 +712,7 @@ class MusicViewModel(
                 s.put("album", song.album)
                 s.put("duration", song.duration)
                 s.put("trackNumber", song.trackNumber)
+                s.put("importDate", song.importDate)
                 libArray.put(s)
             }
             root.put("library", libArray)
@@ -730,6 +776,7 @@ class MusicViewModel(
                     album = s.getString("album"),
                     duration = s.getLong("duration"),
                     trackNumber = s.getInt("trackNumber"),
+                    importDate = s.optLong("importDate", System.currentTimeMillis()),
                     id = s.getString("uri").hashCode().toLong(),
                     cover = null
                 ))

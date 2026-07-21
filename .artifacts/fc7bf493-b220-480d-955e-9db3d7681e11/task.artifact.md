@@ -1,0 +1,15 @@
+- [ ] Atualizar modelos de dados e enums
+    - [ ] Adicionar `importDate` em `Song.kt`
+    - [ ] Atualizar `SortOption.kt` com suporte a direção e novas chaves
+    - [ ] Criar `FilterOption.kt`
+- [ ] Implementar lógica no `MusicViewModel`
+    - [ ] Adicionar StateFlows para `SortOrder` e `FilterOption`
+    - [ ] Atualizar persistência (carregar/salvar biblioteca com `importDate`)
+    - [ ] Implementar StateFlows reativos combinando busca, filtro e ordenação
+- [ ] Atualizar Interface do Usuário (`LibraryPanel.kt`)
+    - [ ] Adicionar linha de chips de filtro rápido
+    - [ ] Reformular seletor de ordenação para suportar novas opções e direção
+    - [ ] Vincular visibilidade das seções ao filtro selecionado
+- [ ] Verificação e Testes
+    - [ ] Validar persistência da ordenação entre sessões
+    - [ ] Testar compatibilidade da busca global com filtros ativos
