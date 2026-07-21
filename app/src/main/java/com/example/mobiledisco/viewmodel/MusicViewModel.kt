@@ -1,11 +1,13 @@
 package com.example.mobiledisco.viewmodel
 
 import android.app.Application
-import android.net.Uri
 import android.content.Context
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.core.content.edit
+import androidx.core.net.toUri
 import com.example.mobiledisco.data.MusicMetadata
 import com.example.mobiledisco.data.Playlist
 import com.example.mobiledisco.data.PlaylistRepository
@@ -17,6 +19,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -26,7 +29,6 @@ import com.example.mobiledisco.ui.state.SortField
 import com.example.mobiledisco.ui.state.SortOrder
 import com.example.mobiledisco.data.toAlbums
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import org.json.JSONArray
@@ -63,7 +65,6 @@ class MusicViewModel(
     val musicaSelecionada = _musicaSelecionada.asStateFlow()
 
     private val _filaReproducao = MutableStateFlow(listOf<Song>())
-    val filaReproducao = _filaReproducao.asStateFlow()
 
     private val _playlists = MutableStateFlow<List<Playlist>>(emptyList())
     val playlists = _playlists.asStateFlow()
@@ -75,7 +76,6 @@ class MusicViewModel(
     val historico = _historico.asStateFlow()
 
     private val _playCounts = MutableStateFlow<Map<String, Int>>(emptyMap())
-    val playCounts = _playCounts.asStateFlow()
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery = _searchQuery.asStateFlow()
@@ -86,18 +86,20 @@ class MusicViewModel(
     private val _filterOption = MutableStateFlow(FilterOption.ALL)
     val filterOption = _filterOption.asStateFlow()
 
-    val filteredPlaylists = combine(playlists, searchQuery) { playlists, query ->
-        if (query.isBlank()) playlists
-        else playlists.filter { it.name.contains(query, ignoreCase = true) }
+    private fun matchesSearch(song: Song, query: String): Boolean {
+        if (query.isBlank()) return true
+        return song.name.contains(query, ignoreCase = true) ||
+               song.artist.contains(query, ignoreCase = true) ||
+               song.album.contains(query, ignoreCase = true)
+    }
+
+    val filteredPlaylists = combine(playlists, searchQuery) { plists, query ->
+        if (query.isBlank()) plists
+        else plists.filter { it.name.contains(query, ignoreCase = true) }
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     val filteredBiblioteca = combine(biblioteca, searchQuery, sortOrder, _playCounts) { songs, query, sort, counts ->
-        val filtered = if (query.isBlank()) songs
-        else songs.filter {
-            it.name.contains(query, ignoreCase = true) ||
-            it.artist.contains(query, ignoreCase = true) ||
-            it.album.contains(query, ignoreCase = true)
-        }
+        val filtered = songs.filter { matchesSearch(it, query) }
 
         when (sort.field) {
             SortField.NAME -> if (sort.direction == SortDirection.ASCENDING) filtered.sortedBy { it.name.lowercase() } else filtered.sortedByDescending { it.name.lowercase() }
@@ -111,38 +113,21 @@ class MusicViewModel(
         }
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    val filteredFavoritos = combine(biblioteca, favoritos, searchQuery) { songs, favs, query ->
-        val favoritesList = songs.filter { favs.contains(it.uri) }
-        if (query.isBlank()) favoritesList
-        else favoritesList.filter {
-            it.name.contains(query, ignoreCase = true) ||
-            it.artist.contains(query, ignoreCase = true) ||
-            it.album.contains(query, ignoreCase = true)
-        }
-    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-
     val filteredHistorico = combine(biblioteca, historico, searchQuery) { songs, histUris, query ->
-        val histList = histUris.mapNotNull { uri -> songs.find { it.uri == uri } }
-        if (query.isBlank()) histList
-        else histList.filter {
-            it.name.contains(query, ignoreCase = true) ||
-            it.artist.contains(query, ignoreCase = true) ||
-            it.album.contains(query, ignoreCase = true)
-        }
+        histUris.asSequence()
+            .mapNotNull { uri -> songs.find { it.uri == uri } }
+            .filter { matchesSearch(it, query) }
+            .toList()
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     val filteredMaisTocadas = combine(biblioteca, _playCounts, searchQuery) { songs, counts, query ->
-        val mostPlayed = counts.filter { it.value > 0 }
+        counts.asSequence()
+            .filter { it.value > 0 }
             .mapNotNull { entry -> songs.find { it.uri == entry.key }?.let { it to entry.value } }
+            .filter { (song, _) -> matchesSearch(song, query) }
             .sortedByDescending { it.second }
             .take(20)
-
-        if (query.isBlank()) mostPlayed
-        else mostPlayed.filter { (song, _) ->
-            song.name.contains(query, ignoreCase = true) ||
-            song.artist.contains(query, ignoreCase = true) ||
-            song.album.contains(query, ignoreCase = true)
-        }
+            .toList()
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     val statistics = combine(
@@ -159,15 +144,21 @@ class MusicViewModel(
             songs.find { it.uri == entry.key }?.let { it to entry.value }
         }
 
-        val artistCounts = counts.mapNotNull { entry ->
-            songs.find { it.uri == entry.key }?.let { it.artist to entry.value }
-        }.groupBy({ it.first }, { it.second }).mapValues { it.value.sum() }
+        val artistCounts = counts.asSequence()
+            .mapNotNull { entry ->
+                songs.find { it.uri == entry.key }?.let { it.artist to entry.value }
+            }
+            .groupBy({ it.first }, { it.second })
+            .mapValues { it.value.sum() }
         
         val mostPlayedArtist = artistCounts.maxByOrNull { it.value }?.toPair()
 
-        val albumCounts = counts.mapNotNull { entry ->
-            songs.find { it.uri == entry.key }?.let { "${it.album} - ${it.artist}" to entry.value }
-        }.groupBy({ it.first }, { it.second }).mapValues { it.value.sum() }
+        val albumCounts = counts.asSequence()
+            .mapNotNull { entry ->
+                songs.find { it.uri == entry.key }?.let { "${it.album} - ${it.artist}" to entry.value }
+            }
+            .groupBy({ it.first }, { it.second })
+            .mapValues { it.value.sum() }
 
         val mostPlayedAlbum = albumCounts.maxByOrNull { it.value }?.toPair()
 
@@ -222,10 +213,10 @@ class MusicViewModel(
             if (musica != null && _musicaSelecionada.value?.uri != uri) {
                 _musicaSelecionada.value = musica
                 indexNaFila = _filaReproducao.value.indexOf(musica).coerceAtLeast(0)
-                prefs.edit()
-                    .putString("SESSION_LAST_URI", uri)
-                    .putLong("SESSION_LAST_POS", 0L)
-                    .apply()
+                prefs.edit {
+                    putString("SESSION_LAST_URI", uri)
+                    putLong("SESSION_LAST_POS", 0L)
+                }
             }
         }
 
@@ -241,15 +232,15 @@ class MusicViewModel(
                     _duration.value = player.getDuration()
                     
                     _musicaSelecionada.value?.let { 
-                        prefs.edit()
-                            .putLong("SESSION_LAST_POS", pos)
-                            .putBoolean("SESSION_WAS_PLAYING", true)
-                            .apply()
+                        prefs.edit {
+                            putLong("SESSION_LAST_POS", pos)
+                            putBoolean("SESSION_WAS_PLAYING", true)
+                        }
                     }
                 } else if (_musicaSelecionada.value != null) {
-                    prefs.edit().putBoolean("SESSION_WAS_PLAYING", false).apply()
+                    prefs.edit { putBoolean("SESSION_WAS_PLAYING", false) }
                 }
-                delay(1000)
+                delay(1.seconds)
             }
         }
     }
@@ -257,14 +248,14 @@ class MusicViewModel(
     private fun carregarConfiguracoes() {
         _isShuffleEnabled.value = prefs.getBoolean("SETTINGS_SHUFFLE", false)
         val repeatOrdinal = prefs.getInt("SETTINGS_REPEAT", RepeatMode.NONE.ordinal)
-        _repeatMode.value = RepeatMode.values()[repeatOrdinal]
+        _repeatMode.value = RepeatMode.entries.getOrElse(repeatOrdinal) { RepeatMode.NONE }
 
-        val sortField = SortField.valueOf(prefs.getString("SETTINGS_SORT_FIELD", SortField.NAME.name) ?: SortField.NAME.name)
-        val sortDirection = SortDirection.valueOf(prefs.getString("SETTINGS_SORT_DIRECTION", SortDirection.ASCENDING.name) ?: SortDirection.ASCENDING.name)
+        val sortField = SortField.entries.find { it.name == prefs.getString("SETTINGS_SORT_FIELD", null) } ?: SortField.NAME
+        val sortDirection = SortDirection.entries.find { it.name == prefs.getString("SETTINGS_SORT_DIRECTION", null) } ?: SortDirection.ASCENDING
         _sortOrder.value = SortOrder(sortField, sortDirection)
 
         val filterName = prefs.getString("SETTINGS_FILTER_OPTION", FilterOption.ALL.name) ?: FilterOption.ALL.name
-        _filterOption.value = FilterOption.valueOf(filterName)
+        _filterOption.value = FilterOption.entries.find { it.name == filterName } ?: FilterOption.ALL
 
         carregarEstatisticas()
     }
@@ -286,7 +277,7 @@ class MusicViewModel(
         val newCount = (currentCounts[song.uri] ?: 0) + 1
         currentCounts[song.uri] = newCount
         _playCounts.value = currentCounts
-        prefs.edit().putInt("STATS_PLAY_COUNT_${song.uri}", newCount).apply()
+        prefs.edit { putInt("STATS_PLAY_COUNT_${song.uri}", newCount) }
     }
 
     private fun carregarFavoritos() {
@@ -369,7 +360,7 @@ class MusicViewModel(
             withContext(Dispatchers.IO) {
                 _biblioteca.value.forEach { song ->
                     try {
-                        val uri = Uri.parse(song.uri)
+                        val uri = song.uri.toUri()
                         val metadata = MusicMetadata.read(context, uri)
                         val songCompleto = Song(
                             uri = song.uri,
@@ -386,7 +377,7 @@ class MusicViewModel(
                         if (_musicaSelecionada.value?.uri == songCompleto.uri) {
                             _musicaSelecionada.value = songCompleto
                         }
-                    } catch (e: Exception) {
+                    } catch (_: Exception) {
                         musicasAtualizadas.add(song)
                     }
                 }
@@ -398,10 +389,10 @@ class MusicViewModel(
     fun selecionarMusica(song: Song?) {
         _musicaSelecionada.value = song
         if (song != null) {
-            prefs.edit()
-                .putString("SESSION_LAST_URI", song.uri)
-                .putBoolean("SESSION_WAS_PLAYING", true)
-                .apply()
+            prefs.edit {
+                putString("SESSION_LAST_URI", song.uri)
+                putBoolean("SESSION_WAS_PLAYING", true)
+            }
 
             configurarFila(song)
             player.updateQueue(_filaReproducao.value, indexNaFila)
@@ -411,7 +402,11 @@ class MusicViewModel(
         } else {
             _filaReproducao.value = emptyList()
             indexNaFila = 0
-            prefs.edit().remove("SESSION_LAST_URI").remove("SESSION_LAST_POS").remove("SESSION_WAS_PLAYING").apply()
+            prefs.edit {
+                remove("SESSION_LAST_URI")
+                remove("SESSION_LAST_POS")
+                remove("SESSION_WAS_PLAYING")
+            }
         }
     }
 
@@ -470,20 +465,18 @@ class MusicViewModel(
         _currentPosition.value = 0L
         _duration.value = 0L
         indexNaFila = 0
-        prefs.edit()
-            .clear()
-            .apply()
+        prefs.edit { clear() }
         player.stop()
     }
 
     fun limparHistorico() {
         _historico.value = emptyList()
-        prefs.edit().remove("SETTINGS_HISTORICO").apply()
+        prefs.edit { remove("SETTINGS_HISTORICO") }
     }
 
     fun limparFavoritos() {
         _favoritos.value = emptySet()
-        prefs.edit().remove("SETTINGS_FAVORITOS").apply()
+        prefs.edit { remove("SETTINGS_FAVORITOS") }
     }
 
     fun zerarEstatisticas() {
@@ -504,10 +497,10 @@ class MusicViewModel(
     fun stop() {
         player.stop()
         _currentPosition.value = 0L
-        prefs.edit()
-            .putLong("SESSION_LAST_POS", 0L)
-            .putBoolean("SESSION_WAS_PLAYING", false)
-            .apply()
+        prefs.edit {
+            putLong("SESSION_LAST_POS", 0L)
+            putBoolean("SESSION_WAS_PLAYING", false)
+        }
     }
 
     fun updateSearchQuery(query: String) {
@@ -516,17 +509,15 @@ class MusicViewModel(
 
     fun updateSortOrder(order: SortOrder) {
         _sortOrder.value = order
-        prefs.edit()
-            .putString("SETTINGS_SORT_FIELD", order.field.name)
-            .putString("SETTINGS_SORT_DIRECTION", order.direction.name)
-            .apply()
+        prefs.edit {
+            putString("SETTINGS_SORT_FIELD", order.field.name)
+            putString("SETTINGS_SORT_DIRECTION", order.direction.name)
+        }
     }
 
     fun updateFilterOption(option: FilterOption) {
         _filterOption.value = option
-        prefs.edit()
-            .putString("SETTINGS_FILTER_OPTION", option.name)
-            .apply()
+        prefs.edit { putString("SETTINGS_FILTER_OPTION", option.name) }
     }
 
     fun handlePlayerEvent(event: PlayerEvent) {
@@ -548,15 +539,15 @@ class MusicViewModel(
     private fun toggleShuffle() {
         val newValue = !_isShuffleEnabled.value
         _isShuffleEnabled.value = newValue
-        prefs.edit().putBoolean("SETTINGS_SHUFFLE", newValue).apply()
+        prefs.edit { putBoolean("SETTINGS_SHUFFLE", newValue) }
         atualizarFilaVisual(_musicaSelecionada.value)
     }
 
     private fun toggleRepeat() {
-        val modes = RepeatMode.values()
+        val modes = RepeatMode.entries
         val nextMode = modes[(_repeatMode.value.ordinal + 1) % modes.size]
         _repeatMode.value = nextMode
-        prefs.edit().putInt("SETTINGS_REPEAT", nextMode.ordinal).apply()
+        prefs.edit { putInt("SETTINGS_REPEAT", nextMode.ordinal) }
     }
 
     private fun toggleFavorito(song: Song) {
@@ -567,7 +558,7 @@ class MusicViewModel(
             current.add(song.uri)
         }
         _favoritos.value = current
-        prefs.edit().putStringSet("SETTINGS_FAVORITOS", current).apply()
+        prefs.edit { putStringSet("SETTINGS_FAVORITOS", current) }
     }
 
     private fun handleAutoNext() {
@@ -591,26 +582,13 @@ class MusicViewModel(
         }
     }
 
-    fun anteriorMusica() {
-        val fila = _filaReproducao.value
-        if (fila.isNotEmpty()) {
-            if (indexNaFila > 0) {
-                indexNaFila--
-                tocarMusicaDaFila(fila[indexNaFila])
-            } else if (_repeatMode.value == RepeatMode.ALL) {
-                indexNaFila = fila.size - 1
-                tocarMusicaDaFila(fila[indexNaFila])
-            }
-        }
-    }
-
     private fun tocarMusicaDaFila(song: Song) {
         _musicaSelecionada.value = song
-        prefs.edit()
-            .putString("SESSION_LAST_URI", song.uri)
-            .putLong("SESSION_LAST_POS", 0L)
-            .putBoolean("SESSION_WAS_PLAYING", true)
-            .apply()
+        prefs.edit {
+            putString("SESSION_LAST_URI", song.uri)
+            putLong("SESSION_LAST_POS", 0L)
+            putBoolean("SESSION_WAS_PLAYING", true)
+        }
         player.play(song)
         adicionarAoHistorico(song)
         incrementarReproducao(song)
@@ -628,10 +606,10 @@ class MusicViewModel(
 
     fun selecionarMusicaDaPlaylist(playlist: Playlist, song: Song) {
         _musicaSelecionada.value = song
-        prefs.edit()
-            .putString("SESSION_LAST_URI", song.uri)
-            .putBoolean("SESSION_WAS_PLAYING", true)
-            .apply()
+        prefs.edit {
+            putString("SESSION_LAST_URI", song.uri)
+            putBoolean("SESSION_WAS_PLAYING", true)
+        }
         filaOriginal = playlist.songs
         atualizarFilaVisual(song)
         player.updateQueue(_filaReproducao.value, indexNaFila)

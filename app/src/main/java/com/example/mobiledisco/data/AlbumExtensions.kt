@@ -1,7 +1,8 @@
 package com.example.mobiledisco.data
 
 fun List<Song>.toAlbums(): List<Album> {
-    return this.groupBy { it.album to it.artist }
+    return this.asSequence()
+        .groupBy { it.album to it.artist }
         .map { (info, songs) ->
             Album(
                 name = info.first,

@@ -1,10 +1,10 @@
 package com.example.mobiledisco.ui.components
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -18,32 +18,32 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.PlaylistPlay
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -53,6 +53,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -138,11 +139,11 @@ fun LibraryPanel(
         if (sortOrder.direction == SortDirection.DESCENDING) sorted.reversed() else sorted
     }
 
-    val showHistory = filterOption == FilterOption.ALL || filterOption == FilterOption.HISTORY
-    val showFavorites = filterOption == FilterOption.ALL || filterOption == FilterOption.FAVORITES
-    val showMostPlayed = filterOption == FilterOption.ALL || filterOption == FilterOption.MOST_PLAYED
-    val showPlaylists = filterOption == FilterOption.ALL || filterOption == FilterOption.PLAYLISTS
-    val showAlbums = filterOption == FilterOption.ALL || filterOption == FilterOption.ALBUMS
+    val showHistory by remember(filterOption) { derivedStateOf { filterOption == FilterOption.ALL || filterOption == FilterOption.HISTORY } }
+    val showFavorites by remember(filterOption) { derivedStateOf { filterOption == FilterOption.ALL || filterOption == FilterOption.FAVORITES } }
+    val showMostPlayed by remember(filterOption) { derivedStateOf { filterOption == FilterOption.ALL || filterOption == FilterOption.MOST_PLAYED } }
+    val showPlaylists by remember(filterOption) { derivedStateOf { filterOption == FilterOption.ALL || filterOption == FilterOption.PLAYLISTS } }
+    val showAlbums by remember(filterOption) { derivedStateOf { filterOption == FilterOption.ALL || filterOption == FilterOption.ALBUMS } }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -206,7 +207,7 @@ fun LibraryPanel(
                     label = "Playlists",
                     isSelected = filterOption == FilterOption.PLAYLISTS,
                     onClick = { onFilterOptionChange(FilterOption.PLAYLISTS) },
-                    icon = Icons.Default.PlaylistPlay
+                    icon = Icons.AutoMirrored.Filled.PlaylistPlay
                 )
             }
             item {
@@ -357,11 +358,19 @@ fun LibraryPanel(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .combinedClickable(onClick = { onPlaylistClick(playlist) }, onLongClick = { selectedPlaylistToManage = playlist; showManagePlaylistDialog = true })
+                        .combinedClickable(
+                            onClick = { onPlaylistClick(playlist) },
+                            onLongClick = { selectedPlaylistToManage = playlist; showManagePlaylistDialog = true }
+                        )
                         .padding(horizontal = HiFiDimensions.Medium, vertical = HiFiDimensions.Small),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.PlaylistPlay, null, tint = HiFiColors.Copper, modifier = Modifier.padding(end = HiFiDimensions.Medium))
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.PlaylistPlay,
+                        contentDescription = null,
+                        tint = HiFiColors.Copper,
+                        modifier = Modifier.padding(end = HiFiDimensions.Medium)
+                    )
                     Column {
                         Text(playlist.name, style = MaterialTheme.typography.titleMedium, color = HiFiColors.Ivory)
                         Text("${playlist.songs.size} músicas", style = MaterialTheme.typography.bodySmall, color = HiFiColors.Sand)
@@ -525,7 +534,11 @@ fun SortMenuItem(label: String, field: SortField, current: SortOrder, onSelect: 
     DropdownMenuItem(
         text = { Text(label, color = if (current.field == field) HiFiColors.Copper else HiFiColors.Ivory) },
         onClick = { onSelect(current.copy(field = field)); onDismiss() },
-        trailingIcon = { if (current.field == field) Icon(Icons.Default.Add, null, tint = HiFiColors.Copper, modifier = Modifier.size(14.dp)) else null }
+        trailingIcon = {
+            if (current.field == field) {
+                Icon(Icons.Default.Add, contentDescription = null, tint = HiFiColors.Copper, modifier = Modifier.size(14.dp))
+            }
+        }
     )
 }
 
@@ -566,7 +579,7 @@ fun AddToPlaylistDialog(playlists: List<Playlist>, onPlaylistSelect: (Playlist) 
             if (playlists.isEmpty()) Text("Nenhuma playlist criada.", color = HiFiColors.Sand)
             else playlists.forEach { playlist ->
                 Row(Modifier.fillMaxWidth().clickable { onPlaylistSelect(playlist) }.padding(vertical = HiFiDimensions.Small), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.PlaylistPlay, null, tint = HiFiColors.Copper, modifier = Modifier.padding(end = HiFiDimensions.Medium))
+                    Icon(Icons.AutoMirrored.Filled.PlaylistPlay, null, tint = HiFiColors.Copper, modifier = Modifier.padding(end = HiFiDimensions.Medium))
                     Column {
                         Text(playlist.name, style = MaterialTheme.typography.titleMedium, color = HiFiColors.Ivory)
                         Text("${playlist.songs.size} músicas", style = MaterialTheme.typography.bodySmall, color = HiFiColors.Sand)

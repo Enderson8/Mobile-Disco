@@ -1,6 +1,8 @@
 package com.example.mobiledisco.ui.components
 
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.util.LruCache
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -27,6 +29,8 @@ import com.example.mobiledisco.data.Song
 import com.example.mobiledisco.ui.theme.HiFiColors
 import com.example.mobiledisco.ui.theme.HiFiDimensions
 
+private val bitmapCache = LruCache<Int, Bitmap>(20)
+
 @Composable
 fun AlbumCover(
     musica: Song?,
@@ -38,30 +42,33 @@ fun AlbumCover(
         targetValue = if (isPlaying) 1.03f else 1f,
         animationSpec = if (isPlaying) {
             infiniteRepeatable(
-                animation = tween(2000, easing = LinearEasing),
+                animation = tween(durationMillis = 2000, easing = LinearEasing),
                 repeatMode = RepeatMode.Reverse
             )
         } else {
-            tween(500)
+            tween(durationMillis = 500)
         },
         label = "coverPulse"
     )
 
     AnimatedContent(
-        targetState = musica?.cover,
+        targetState = musica?.uri to musica?.cover,
         transitionSpec = {
-            fadeIn(animationSpec = tween(500)) togetherWith fadeOut(animationSpec = tween(500))
+            fadeIn(animationSpec = tween(durationMillis = 500)) togetherWith fadeOut(animationSpec = tween(durationMillis = 500))
         },
         label = "coverAnimation"
-    ) { coverBytes ->
+    ) { (uri, coverBytes) ->
         if (coverBytes != null) {
             val bitmap = remember(coverBytes) {
-                BitmapFactory.decodeByteArray(coverBytes, 0, coverBytes.size)
+                val key = uri.hashCode()
+                bitmapCache.get(key) ?: BitmapFactory.decodeByteArray(coverBytes, 0, coverBytes.size)?.also {
+                    bitmapCache.put(key, it)
+                }
             } ?: return@AnimatedContent
             
             Box(
                 modifier = Modifier
-                    .graphicsLayer(scaleX = scale, scaleY = scale) // Aplica a animação
+                    .graphicsLayer(scaleX = scale, scaleY = scale)
                     .clickable { onClick() }
                     .shadow(
                         elevation = 4.dp,
@@ -84,3 +91,4 @@ fun AlbumCover(
         }
     }
 }
+

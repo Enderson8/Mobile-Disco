@@ -2,8 +2,8 @@ package com.example.mobiledisco.player
 
 import android.content.ComponentName
 import android.content.Context
-import android.net.Uri
 import android.util.Log
+import androidx.core.net.toUri
 import androidx.media3.common.C
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.MediaItem
@@ -22,7 +22,7 @@ class MusicPlayer(context: Context) {
     private val controller: MediaController?
         get() = if (controllerFuture?.isDone == true) controllerFuture?.get() else null
 
-    private val _isPlaying = MutableStateFlow(false)
+    private val _isPlaying = MutableStateFlow(value = false)
     val isPlaying = _isPlaying.asStateFlow()
 
     var onSongFinished: (() -> Unit)? = null
@@ -37,24 +37,26 @@ class MusicPlayer(context: Context) {
             val controller = controllerFuture?.get()
             if (controller != null) {
                 _isPlaying.value = controller.isPlaying
-                controller.addListener(object : Player.Listener {
-                    override fun onIsPlayingChanged(isPlaying: Boolean) {
-                        _isPlaying.value = isPlaying
-                    }
+                controller.addListener(
+                    object : Player.Listener {
+                        override fun onIsPlayingChanged(isPlaying: Boolean) {
+                            _isPlaying.value = isPlaying
+                        }
 
-                    override fun onPlaybackStateChanged(playbackState: Int) {
-                        if (playbackState == Player.STATE_ENDED) {
-                            Log.d("MobileDisco", "STATE_ENDED detectado")
-                            onSongFinished?.invoke()
+                        override fun onPlaybackStateChanged(playbackState: Int) {
+                            if (playbackState == Player.STATE_ENDED) {
+                                Log.d("MobileDisco", "STATE_ENDED detectado")
+                                onSongFinished?.invoke()
+                            }
+                        }
+
+                        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                            mediaItem?.mediaId?.let { uri ->
+                                onMediaItemTransition?.invoke(uri)
+                            }
                         }
                     }
-
-                    override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                        mediaItem?.mediaId?.let { uri ->
-                            onMediaItemTransition?.invoke(uri)
-                        }
-                    }
-                })
+                )
                 
                 onPlayerReady?.invoke()
             }
@@ -102,15 +104,11 @@ class MusicPlayer(context: Context) {
             .setTitle(song.name)
             .setArtist(song.artist)
             .setAlbumTitle(song.album)
-            .apply {
-                if (song.cover != null) {
-                    setArtworkData(song.cover, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
-                }
-            }
+            .setArtworkData(song.cover, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
             .build()
 
         return MediaItem.Builder()
-            .setUri(Uri.parse(song.uri))
+            .setUri(song.uri.toUri())
             .setMediaId(song.uri)
             .setMediaMetadata(metadata)
             .build()

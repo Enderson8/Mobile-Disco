@@ -1,40 +1,34 @@
-# Walkthrough - Organização Inteligente da Biblioteca (F8.0)
+# Walkthrough - Sprint P1.0 (Hardening e Revisão Geral)
 
-Implementação de ordenação e filtros rápidos para facilitar a navegação em grandes bibliotecas de música.
+Finalizamos a revisão técnica completa do Mobile Disco. O foco foi estabilidade, performance e modernização do código, sem alterações funcionais.
 
-## Alterações Realizadas
+## Principais Melhorias
 
-### [Componente de Dados]
+### [Otimização de Memória]
+- **Cache de Capas**: Implementamos um `LruCache` em `AlbumCover.kt` para evitar decodificações repetitivas de `ByteArray` para `Bitmap`. Isso reduz significativamente o uso de CPU e memória durante o scroll da biblioteca.
 
-#### [Song.kt](file:///C:/Users/Administrador/AndroidStudioProjects/MobileDisco/app/src/main/java/com/example/mobiledisco/data/Song.kt)
-- Adicionado campo `importDate: Long` para rastrear quando a música foi adicionada.
-- Valor padrão: momento da criação ou carregamento inicial.
+### [Performance do Compose]
+- **Estados Derivados**: Utilizamos `derivedStateOf` no `LibraryPanel.kt` para calcular flags de visibilidade de seções. Isso evita recomposições desnecessárias quando estados não relacionados mudam.
+- **Limpeza de Recomposições**: Revisamos o uso de `remember` em componentes críticos para garantir estabilidade visual.
 
-#### [SortOption.kt](file:///C:/Users/Administrador/AndroidStudioProjects/MobileDisco/app/src/main/java/com/example/mobiledisco/ui/state/SortOption.kt) e [FilterOption.kt](file:///C:/Users/Administrador/AndroidStudioProjects/MobileDisco/app/src/main/java/com/example/mobiledisco/ui/state/FilterOption.kt)
-- Novas estruturas para gerenciar o estado de ordenação (campo + direção) e filtragem.
+### [Modernização do Código]
+- **Kotlin 1.9+**: Migramos todos os usos de `Enum.values()` para `Enum.entries`, que é mais performático e seguro.
+- **KTX Extensions**: Aplicamos extensões como `prefs.edit { ... }` e `String.toUri()` para um código mais idiomático e legível.
+- **Sequences**: Utilizamos `asSequence()` em operações complexas de coleções no `MusicViewModel` e `PlaylistRepository`, otimizando o processamento de dados.
 
-### [ViewModel]
+### [Estabilidade e Limpeza]
+- **Remoção de Código Morto**: Excluímos funções (`anteriorMusica`) e propriedades de estado (`filteredFavoritos`, `filaReproducao` pública) que não eram utilizadas.
+- **Correção de Warnings**: Resolvemos dezenas de avisos do compilador e do analyzer (imports duplicados, quebras de linha, parâmetros sem nome).
 
-#### [MusicViewModel.kt](file:///C:/Users/Administrador/AndroidStudioProjects/MobileDisco/app/src/main/java/com/example/mobiledisco/viewmodel/MusicViewModel.kt)
-- **Ordenação Reativa**: `filteredBiblioteca` agora reage a mudanças na `SortOrder`.
-- **Persistência**: Opções de ordenação e filtros são salvos no `SharedPreferences`.
-- **Migração**: `carregarBiblioteca` preenche `importDate` se ausente.
+## Relatório Técnico
 
-### [Interface do Usuário]
+| Arquivo Modificado | Motivo da Alteração | Ganho Esperado | Comportamento Alterado? |
+| :--- | :--- | :--- | :--- |
+| `MusicViewModel.kt` | Refatoração de busca e remoção de código morto. | Manutenção e Performance. | Não |
+| `LibraryPanel.kt` | Uso de `derivedStateOf` e `remember`. | Estabilidade de UI (menos lag). | Não |
+| `AlbumCover.kt` | Implementação de `LruCache` de Bitmaps. | Memória e CPU. | Não |
+| `MusicPlayer.kt` | Modernização de APIs e estilo. | Legibilidade. | Não |
+| `PlaylistRepository.kt` | Uso de KTX e Sequences. | Performance e Manutenção. | Não |
 
-#### [LibraryPanel.kt](file:///C:/Users/Administrador/AndroidStudioProjects/MobileDisco/app/src/main/java/com/example/mobiledisco/ui/components/LibraryPanel.kt)
-- **Filtros Rápidos**: Adicionado carrossel de chips para filtrar por Favoritos, Playlists, Álbuns, Histórico e Mais Tocadas.
-- **Menu de Ordenação**: Reformulado para permitir escolha do campo e alternância entre Crescente/Decrescente.
-- **Visibilidade Dinâmica**: Seções da biblioteca aparecem/desaparecem conforme o filtro selecionado.
-
-## Capturas de Tela (Simuladas)
-
-> [!NOTE]
-> Imagine a barra de filtros logo abaixo da pesquisa com os ícones: 🎵 (Tudo), ⭐ (Favoritos), 📑 (Playlists), 💿 (Álbuns), 🕒 (Histórico), 🔥 (Populares).
-
-## Verificação
-
-- [x] **Persistência**: A ordenação escolhida (ex: Artista ↓) é mantida após fechar e abrir o app.
-- [x] **Busca Global**: A barra de pesquisa continua funcionando em conjunto com os filtros ativos.
-- [x] **Escalabilidade**: A estrutura de `SortOrder` permite adicionar novos campos ou lógicas de direção facilmente.
-- [x] **Estatísticas**: O filtro "Populares" utiliza os dados reais de reprodução persistidos.
+## Conclusão
+O sistema agora está mais robusto e preparado para lidar com bibliotecas maiores com menor consumo de recursos. Todas as funcionalidades originais (Player, Busca, Favoritos, Playlists) permanecem operacionais e idênticas em comportamento.

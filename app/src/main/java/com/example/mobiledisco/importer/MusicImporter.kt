@@ -10,22 +10,22 @@ import com.example.mobiledisco.data.toSong
 object MusicImporter {
 
     fun importAlbum(context: Context, folderUri: Uri): List<Song> {
-        val songs = mutableListOf<Song>()
         val rootFolder = DocumentFile.fromTreeUri(context, folderUri)
 
-        if (rootFolder != null && rootFolder.isDirectory) {
-            rootFolder.listFiles().forEach { file ->
-                if (file.isFile && isAudioFile(file)) {
+        return if (rootFolder != null && rootFolder.isDirectory) {
+            rootFolder.listFiles()
+                .filter { it.isFile && isAudioFile(it) }
+                .mapNotNull { file ->
                     try {
                         val metadata = MusicMetadata.read(context, file.uri)
-                        songs.add(metadata.toSong(file.uri))
-                    } catch (e: Exception) {
-                        println("Erro ao importar música: ${file.name}")
+                        metadata.toSong(file.uri)
+                    } catch (_: Exception) {
+                        null
                     }
                 }
-            }
+        } else {
+            emptyList()
         }
-        return songs
     }
 
     private fun isAudioFile(file: DocumentFile): Boolean {

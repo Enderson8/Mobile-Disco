@@ -1,15 +1,17 @@
-- [ ] Atualizar modelos de dados e enums
-    - [ ] Adicionar `importDate` em `Song.kt`
-    - [ ] Atualizar `SortOption.kt` com suporte a direção e novas chaves
-    - [ ] Criar `FilterOption.kt`
-- [ ] Implementar lógica no `MusicViewModel`
-    - [ ] Adicionar StateFlows para `SortOrder` e `FilterOption`
-    - [ ] Atualizar persistência (carregar/salvar biblioteca com `importDate`)
-    - [ ] Implementar StateFlows reativos combinando busca, filtro e ordenação
-- [ ] Atualizar Interface do Usuário (`LibraryPanel.kt`)
-    - [ ] Adicionar linha de chips de filtro rápido
-    - [ ] Reformular seletor de ordenação para suportar novas opções e direção
-    - [ ] Vincular visibilidade das seções ao filtro selecionado
-- [ ] Verificação e Testes
-    - [ ] Validar persistência da ordenação entre sessões
-    - [ ] Testar compatibilidade da busca global com filtros ativos
+- [ ] **Limpeza e Modernização (Geral)**
+    - [ ] Remover imports não utilizados e código morto detectados pelo analyzer
+    - [ ] Migrar `Enum.values()` para `Enum.entries`
+    - [ ] Aplicar extensões KTX (`toUri`, `edit`)
+- [ ] **Otimização do MusicViewModel**
+    - [ ] Refatorar lógica de filtro de texto duplicada
+    - [ ] Usar `Sequence` em filtros de estatísticas e coleções grandes
+    - [ ] Corrigir avisos de concorrência e lifecycle (Media3 listeners)
+- [ ] **Otimização do LibraryPanel (Compose)**
+    - [ ] Aplicar `derivedStateOf` para flags de visibilidade e estados derivados
+    - [ ] Organizar lambdas e recomposições
+- [ ] **Gerenciamento de Memória (AlbumCover)**
+    - [ ] Otimizar decodificação de ByteArray para Bitmap (evitar redundância)
+- [ ] **Verificação Final**
+    - [ ] Build do projeto
+    - [ ] Validação manual de fluxos (congelamento de funcionalidades)
+    - [ ] Geração do relatório final
