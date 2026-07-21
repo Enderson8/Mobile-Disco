@@ -24,7 +24,8 @@ fun SettingsScreen(
     onZerarEstatisticas: () -> Unit,
     onExportarBiblioteca: () -> Unit,
     onImportarBiblioteca: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var showConfirmDialog by remember { mutableStateOf<ConfirmType?>(null) }
 
@@ -33,13 +34,12 @@ fun SettingsScreen(
     }
 
     Surface(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         color = HiFiColors.Walnut900
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
                 .verticalScroll(rememberScrollState())
         ) {
             Row(

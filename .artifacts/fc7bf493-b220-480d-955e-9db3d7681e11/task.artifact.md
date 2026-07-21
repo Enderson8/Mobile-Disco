@@ -1,17 +1,12 @@
-- [ ] **Limpeza e Modernização (Geral)**
-    - [ ] Remover imports não utilizados e código morto detectados pelo analyzer
-    - [ ] Migrar `Enum.values()` para `Enum.entries`
-    - [ ] Aplicar extensões KTX (`toUri`, `edit`)
-- [ ] **Otimização do MusicViewModel**
-    - [ ] Refatorar lógica de filtro de texto duplicada
-    - [ ] Usar `Sequence` em filtros de estatísticas e coleções grandes
-    - [ ] Corrigir avisos de concorrência e lifecycle (Media3 listeners)
-- [ ] **Otimização do LibraryPanel (Compose)**
-    - [ ] Aplicar `derivedStateOf` para flags de visibilidade e estados derivados
-    - [ ] Organizar lambdas e recomposições
-- [ ] **Gerenciamento de Memória (AlbumCover)**
-    - [ ] Otimizar decodificação de ByteArray para Bitmap (evitar redundância)
+- [ ] **Ajuste do Root (MobileDiscoScreen)**
+    - [ ] Garantir que o `modifier` recebido da Activity seja aplicado corretamente ao contêiner principal.
+- [ ] **Proteção do MiniPlayer**
+    - [ ] Adicionar `navigationBarsPadding()` ao `MiniPlayer` para evitar sobreposição pelos botões de navegação.
+- [ ] **Ajuste das Telas de Detalhe**
+    - [ ] NowPlayingScreen: Adicionar padding na parte inferior para proteger controles.
+    - [ ] PlaylistScreen: Adicionar padding na base da Column ou LazyColumn.
+    - [ ] StatisticsScreen e SettingsScreen: Adicionar padding ao final do scroll.
+- [ ] **Validação de Hierarquia**
+    - [ ] Verificar se não há paddings duplicados (ex: Scaffold + navigationBarsPadding).
 - [ ] **Verificação Final**
-    - [ ] Build do projeto
-    - [ ] Validação manual de fluxos (congelamento de funcionalidades)
-    - [ ] Geração do relatório final
+    - [ ] Validar visualmente e garantir compilação.

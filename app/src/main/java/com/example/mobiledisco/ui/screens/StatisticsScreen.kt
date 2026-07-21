@@ -22,20 +22,20 @@ import com.example.mobiledisco.viewmodel.MusicStatistics
 @Composable
 fun StatisticsScreen(
     stats: MusicStatistics,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     BackHandler {
         onBack()
     }
 
     Surface(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         color = HiFiColors.Walnut900
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
                 .verticalScroll(rememberScrollState())
         ) {
             Row(

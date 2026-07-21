@@ -136,6 +136,7 @@ fun HomeScreenContent(
     }
 
     Scaffold(
+        modifier = modifier,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = HiFiColors.Walnut900,
         bottomBar = {
@@ -153,7 +154,7 @@ fun HomeScreenContent(
         }
     ) { padding ->
         Surface(
-            modifier = modifier
+            modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
             color = HiFiColors.Walnut900

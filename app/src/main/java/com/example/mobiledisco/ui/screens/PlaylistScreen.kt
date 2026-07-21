@@ -68,7 +68,6 @@ fun PlaylistScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
         ) {
             Row(
                 modifier = Modifier

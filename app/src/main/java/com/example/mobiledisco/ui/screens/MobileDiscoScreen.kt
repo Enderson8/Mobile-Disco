@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -53,7 +54,7 @@ fun MobileDiscoScreen(
                             writer.write(json)
                         }
                     }
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     // Feedback visual via snackbar poderia ser adicionado aqui
                 }
             }
@@ -72,7 +73,7 @@ fun MobileDiscoScreen(
                             viewModel.importarDados(json)
                         }
                     }
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     // Feedback visual
                 }
             }
@@ -88,7 +89,8 @@ fun MobileDiscoScreen(
                     onPlaylistClick = { playlist -> navigation.openPlaylist(playlist.id) },
                     onNavigateToPlaylist = { id -> navigation.openPlaylist(id) },
                     onOpenStatistics = { navigation.openStatistics() },
-                    onOpenSettings = { navigation.openSettings() }
+                    onOpenSettings = { navigation.openSettings() },
+                    modifier = modifier
                 )
             }
             AppScreen.NOW_PLAYING -> {
@@ -105,7 +107,8 @@ fun MobileDiscoScreen(
                         repeatMode = repeatMode,
                         isFavorite = musicaSelecionada?.let { favoritos.contains(it.uri) } ?: false
                     ),
-                    onEvent = { event -> viewModel.handlePlayerEvent(event) }
+                    onEvent = { event -> viewModel.handlePlayerEvent(event) },
+                    modifier = modifier
                 )
             }
             AppScreen.PLAYLIST -> {
@@ -126,7 +129,8 @@ fun MobileDiscoScreen(
                         onAddSongsClick = {
                             viewModel.iniciarEdicaoPlaylist(currentPlaylist.id)
                         },
-                        onBack = { navigation.openLibrary() }
+                        onBack = { navigation.openLibrary() },
+                        modifier = modifier
                     )
                 } else {
                     navigation.openLibrary()
@@ -136,7 +140,8 @@ fun MobileDiscoScreen(
                 val stats by viewModel.statistics.collectAsState()
                 StatisticsScreen(
                     stats = stats,
-                    onBack = { navigation.openLibrary() }
+                    onBack = { navigation.openLibrary() },
+                    modifier = modifier
                 )
             }
             AppScreen.SETTINGS -> {
@@ -146,7 +151,8 @@ fun MobileDiscoScreen(
                     onZerarEstatisticas = { viewModel.zerarEstatisticas() },
                     onExportarBiblioteca = { exportLauncher.launch("mobile_disco_backup.json") },
                     onImportarBiblioteca = { importLauncher.launch(arrayOf("application/json", "text/*")) },
-                    onBack = { navigation.openLibrary() }
+                    onBack = { navigation.openLibrary() },
+                    modifier = modifier
                 )
             }
         }

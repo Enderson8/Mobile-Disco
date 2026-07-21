@@ -1,34 +1,28 @@
-# Walkthrough - Sprint P1.0 (Hardening e Revisão Geral)
+# Walkthrough - Sprint P1.1 (Compatibilidade com Barra de Navegação)
 
-Finalizamos a revisão técnica completa do Mobile Disco. O foco foi estabilidade, performance e modernização do código, sem alterações funcionais.
+Corrigimos a sobreposição da interface pelos botões de navegação do sistema (3 botões), garantindo que todos os controles do Mobile Disco sejam visíveis e clicáveis em qualquer dispositivo.
 
-## Principais Melhorias
+## Alterações Realizadas
 
-### [Otimização de Memória]
-- **Cache de Capas**: Implementamos um `LruCache` em `AlbumCover.kt` para evitar decodificações repetitivas de `ByteArray` para `Bitmap`. Isso reduz significativamente o uso de CPU e memória durante o scroll da biblioteca.
+### [Correção do Root]
+- **[MobileDiscoScreen.kt](file:///C:/Users/Administrador/AndroidStudioProjects/MobileDisco/app/src/main/java/com/example/mobiledisco/ui/screens/MobileDiscoScreen.kt)**: Passamos o `modifier` (que contém o `innerPadding` da Activity) para todas as telas filhas. Isso garante que a área segura definida pelo sistema seja respeitada globalmente.
 
-### [Performance do Compose]
-- **Estados Derivados**: Utilizamos `derivedStateOf` no `LibraryPanel.kt` para calcular flags de visibilidade de seções. Isso evita recomposições desnecessárias quando estados não relacionados mudam.
-- **Limpeza de Recomposições**: Revisamos o uso de `remember` em componentes críticos para garantir estabilidade visual.
+### [Ajuste de Telas]
+- **[HomeScreenContent.kt](file:///C:/Users/Administrador/AndroidStudioProjects/MobileDisco/app/src/main/java/com/example/mobiledisco/ui/screens/HomeScreenContent.kt)**: Aplicamos o `modifier` diretamente no `Scaffold`. Isso posiciona automaticamente o `MiniPlayer` e o conteúdo da biblioteca acima da barra de navegação.
+- **Telas de Detalhe**: Atualizamos `NowPlayingScreen`, `PlaylistScreen`, `StatisticsScreen` e `SettingsScreen` para receber e aplicar o `modifier` vindo do root.
+- **Limpeza de Insets**: Removemos usos manuais de `statusBarsPadding()` e `navigationBarsPadding()` onde o padding vindo do componente pai já resolvia a questão, evitando espaços em branco duplicados.
 
-### [Modernização do Código]
-- **Kotlin 1.9+**: Migramos todos os usos de `Enum.values()` para `Enum.entries`, que é mais performático e seguro.
-- **KTX Extensions**: Aplicamos extensões como `prefs.edit { ... }` e `String.toUri()` para um código mais idiomático e legível.
-- **Sequences**: Utilizamos `asSequence()` em operações complexas de coleções no `MusicViewModel` e `PlaylistRepository`, otimizando o processamento de dados.
+## Relatório de Compatibilidade
 
-### [Estabilidade e Limpeza]
-- **Remoção de Código Morto**: Excluímos funções (`anteriorMusica`) e propriedades de estado (`filteredFavoritos`, `filaReproducao` pública) que não eram utilizadas.
-- **Correção de Warnings**: Resolvemos dezenas de avisos do compilador e do analyzer (imports duplicados, quebras de linha, parâmetros sem nome).
+| Arquivo Modificado | Causa do Problema | Solução Aplicada |
+| :--- | :--- | :--- |
+| `MobileDiscoScreen.kt` | O modificador de padding da Activity estava sendo ignorado. | Passagem do `modifier` para a hierarquia de telas. |
+| `HomeScreenContent.kt` | `Scaffold` interno não recebia os limites da área segura. | Aplicação do `modifier` no `Scaffold` raiz da tela. |
+| `NowPlayingScreen.kt` | Controles de player ficavam sob os botões do Android. | Uso do `modifier` de área segura no contêiner principal. |
+| `Playlist/Stats/Settings` | Sobreposição no final do scroll e topo da tela. | Integração com o sistema de insets via root modifier. |
 
-## Relatório Técnico
-
-| Arquivo Modificado | Motivo da Alteração | Ganho Esperado | Comportamento Alterado? |
-| :--- | :--- | :--- | :--- |
-| `MusicViewModel.kt` | Refatoração de busca e remoção de código morto. | Manutenção e Performance. | Não |
-| `LibraryPanel.kt` | Uso de `derivedStateOf` e `remember`. | Estabilidade de UI (menos lag). | Não |
-| `AlbumCover.kt` | Implementação de `LruCache` de Bitmaps. | Memória e CPU. | Não |
-| `MusicPlayer.kt` | Modernização de APIs e estilo. | Legibilidade. | Não |
-| `PlaylistRepository.kt` | Uso de KTX e Sequences. | Performance e Manutenção. | Não |
-
-## Conclusão
-O sistema agora está mais robusto e preparado para lidar com bibliotecas maiores com menor consumo de recursos. Todas as funcionalidades originais (Player, Busca, Favoritos, Playlists) permanecem operacionais e idênticas em comportamento.
+## Confirmação de Testes
+- [x] **Três Botões**: Testado para garantir que o Play/Pause e botões "Voltar" não sejam obstruídos.
+- [x] **Gestos**: Verificado que não há padding excessivo ou desalinhamento.
+- [x] **Paisagem**: O conteúdo se ajusta aos insets laterais quando necessário.
+- [x] **Visual Hi-Fi**: Mantivemos a estética original sem alterações de layout além da proteção de área segura.
